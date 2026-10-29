@@ -225,10 +225,10 @@ function CalculatePath(
     let nearestDistance = Infinity;
 
     // Check every rectangle in the game.
-    for (const rect of Objects) {
-
+    for (const object of Objects) {
+        const rect = object.type !== "_Enemy" ? object : object.EnemyHitBox;
         // Find where this ray intersects the current rectangle.
-        const hit = rayRecHit(start, dir, rect);
+        const hit = rayRecHit(start, dir, rect );
 
         // Ignore the rectangle if:
         // 1. The ray missed it.
@@ -394,9 +394,7 @@ export class PlayerClass extends LJS.EngineObject {
 
 
         if (mouseWasPressed) {
-            
             this.fireBullet();
-            // console.log("Pressed");
             mouseWasPressed = false;
         }
     }
