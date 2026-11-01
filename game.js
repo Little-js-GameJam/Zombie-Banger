@@ -1,8 +1,8 @@
 
 import * as LJS from 'littlejsengine';
-import { PlayerClass } from './player.js';
+import { PlayerClass,PlayerHealth,IncrBounces,DecrBounces} from './player.js';
 import { LevelDesigner } from './LevelDesigner.js';
-import { Enemies,addObject,EneminesEliminated } from './Objects.js';
+
 
 let player;
 let levelDesigner;
@@ -28,12 +28,23 @@ function gameInit() {
 
 
 function gameUpdate() {
-
+    //Let player choose the number of Bounces
+    if(LJS.keyWasPressed('NumpadAdd') ){
+        IncrBounces();
+    }
+    else if(LJS.keyWasPressed('NumpadSubtract')){
+       DecrBounces();
+    }
+    
+    if(PlayerHealth <=0){
+        console.log("END");
+    }
 }
 
 function gameUpdatePost() {}
 
 function gameRender() {
+
 
 
 }

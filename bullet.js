@@ -1,6 +1,6 @@
 import * as LJS from 'littlejsengine';
 import { Enemies, Objects,EneminesEliminated } from './Objects.js';
-import { rayRecHit } from './player.js'; 
+import { PlayerClass, rayRecHit,damagePlayer } from './player.js'; 
 
 // CHANGED: set to true to log every bounce in the browser console.
 const DEBUG_BULLETS = true;
@@ -57,26 +57,6 @@ export class BulletClass extends LJS.EngineObject {
         let nearestHit = null;
         let nearestDistance = Infinity;
 
-        for (const rect of Objects) {
-        
-            const hit = rayRecHit(start, this.direction, rect);
-
-            if (!hit || !hit.normal)
-                continue;
-
-            const distance = hit.point.subtract(start).length();
-
-            // Only consider collisions within this frame's movement.
-            if (
-                distance > 1e-4 &&
-                distance <= movementDistance &&
-                distance < nearestDistance
-            ) {
-                nearestDistance = distance;
-                nearestHit = hit;
-            }
-        }
-
         for (const enemy of Enemies.values()) {
             
             const hit = rayRecHit(start, this.direction, enemy.EnemyHitBox);
@@ -102,6 +82,27 @@ export class BulletClass extends LJS.EngineObject {
             
         }
 
+        for (const rect of Objects) {
+        
+            const hit = rayRecHit(start, this.direction, rect);
+
+            if (!hit || !hit.normal)
+                continue;
+
+            const distance = hit.point.subtract(start).length();
+
+            // Only consider collisions within this frame's movement.
+            if (
+                distance > 1e-4 &&
+                distance <= movementDistance &&
+                distance < nearestDistance
+            ) {
+                nearestDistance = distance;
+                nearestHit = hit;
+            }
+        }
+
+
         // No collision: move normally.
         if (!nearestHit) {
             this.pos = start.add(
@@ -114,8 +115,6 @@ export class BulletClass extends LJS.EngineObject {
         this.pos = nearestHit.point;
 
         if (nearestHit.isEnemy) {
-
-            
             this.lifeTimeOver = true;
             this.destroy();
             return;
@@ -137,11 +136,17 @@ export class BulletClass extends LJS.EngineObject {
 
         this.bouncesHappened++;
 
+        //Decrease the health of the player on the bounce count
+        damagePlayer(20);
+
         // Move slightly away from the wall to prevent
         // immediately detecting the same collision again.
         this.pos = this.pos.add(
             nearestHit.normal.scale(0.001)
         );
+
+        
+        
     }
 
     render() {
