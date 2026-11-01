@@ -3,6 +3,7 @@ import * as LJS from 'littlejsengine';
 import { Objects } from './Objects.js';
 import { BulletClass } from './bullet.js';
 
+
 // Stores the ray segments calculated for rendering.
 let RayDists = new Map();
 export let PlayerHealth =100;

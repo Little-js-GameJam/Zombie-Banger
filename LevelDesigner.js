@@ -1,6 +1,6 @@
 import * as LJS from 'littlejsengine';
 import { Objects,Enemies,addObject,EneminesEliminated } from './Objects.js';
-
+import { IncrWaveCount,WAVE_COUNT} from './game.js';
 import { Enemy } from './Enemy.js';
 
 const MAP_URL = '/assets/level/level1/zbLevel1.tmj';
@@ -11,7 +11,7 @@ const SHOW_COLLISION_DEBUG = false;
 
 let IS_FIRST_WAVE_LOADED = false;
 let IS_NEXT_WAVE_LOADED = false;
-let WAVE_COUNT = 1;
+// let WAVE_COUNT = 1;
 // Invisible static collider (drawn only when debugging)
 class Wall extends LJS.EngineObject {
     constructor(pos, size) {
@@ -277,7 +277,7 @@ export class LevelDesigner extends LJS.EngineObject {
            IS_NEXT_WAVE_LOADED = false;
         }
         if(!IS_NEXT_WAVE_LOADED && IS_FIRST_WAVE_LOADED){
-            WAVE_COUNT++;
+            IncrWaveCount();
             this.loadWaves();
         }
 
