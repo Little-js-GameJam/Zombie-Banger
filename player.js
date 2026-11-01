@@ -5,6 +5,24 @@ import { BulletClass } from './bullet.js';
 
 // Stores the ray segments calculated for rendering.
 let RayDists = new Map();
+export let PlayerHealth =100;
+export let Bounces = 3;
+let MaxBounces = 6;
+//Decrease the health of the player 
+export function damagePlayer(damage) {
+    PlayerHealth = Math.max(0, PlayerHealth - damage);
+}
+
+export function IncrBounces(){
+    if(Bounces<MaxBounces){
+        Bounces++;
+    }
+}
+export function DecrBounces(){
+    if(Bounces>0){
+        Bounces--;
+    }
+}
 
 // Temporary map used to calculate the next frame's ray segments.
 // We swap the two maps after calculating the path.
@@ -314,6 +332,8 @@ function CalculatePath(
 
 // The player object inherits functionality from LittleJS.
 export class PlayerClass extends LJS.EngineObject {
+
+    color = LJS.GREEN.copy();
     // Current mouse position in world coordinates.
     mousePosLoc = LJS.vec2(0, 0);
 
@@ -337,6 +357,9 @@ export class PlayerClass extends LJS.EngineObject {
 
         // Remember the initial player position.
         this.playerStartPos = this.pos;
+
+        PlayerHealth = 100;
+        this.previousHealth = PlayerHealth;
     } 
 
     fireBullet() {
@@ -382,7 +405,7 @@ export class PlayerClass extends LJS.EngineObject {
         CalculatePath(
             start_pos,
             dir,
-            3,
+            Bounces,
             2000,
             start_pos,
             NextRayDists
@@ -404,11 +427,16 @@ export class PlayerClass extends LJS.EngineObject {
 
     render() {
 
+        if (PlayerHealth < this.previousHealth) {
+            this.color.a = PlayerHealth / 100;
+        }
+        this.previousHealth = PlayerHealth;
+
         // Draw the player as a green circle.
         LJS.drawCircle(
             this.pos,
             this.player_size,
-            LJS.GREEN
+            this.color
         );
 
         // Draw the mouse position as a small red circle.
