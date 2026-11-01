@@ -1,10 +1,10 @@
 import * as LJS from 'littlejsengine';
 import { Enemies, Objects,EneminesEliminated } from './Objects.js';
-import { PlayerClass, rayRecHit,damagePlayer } from './player.js'; 
+import { PlayerClass, rayRecHit,damagePlayer,Bounces } from './player.js'; 
 
 // CHANGED: set to true to log every bounce in the browser console.
 const DEBUG_BULLETS = true;
-
+// console.log(Bounces);
 export class BulletClass extends LJS.EngineObject {
 
     // Direction in which the bullet currently travels.
@@ -12,7 +12,8 @@ export class BulletClass extends LJS.EngineObject {
 
     // Bullet configuration.
     doesPierce = false;
-    bulletBounceThreshold = 2;
+    
+    bulletBounceThreshold = Bounces - 1;
     bouncesHappened = 0;
 
     // CHANGED: was 400. The level is now in tile units (map is 25 x 15 units),
@@ -71,8 +72,8 @@ export class BulletClass extends LJS.EngineObject {
                 distance <= movementDistance &&
                 distance < nearestDistance
             ) {
-                enemy.color.a -= 0.2;
-                enemy.health -= 20;
+                enemy.color.a -= 1;
+                enemy.health -= 100;
                 nearestDistance = distance;
                 nearestHit = { ...hit, isEnemy: true };
             }
