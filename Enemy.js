@@ -37,13 +37,15 @@ export class Enemy extends LJS.EngineObject {
 
         if (this.animationTimer >= this.animationSpeed) {
             this.animationTimer -= this.animationSpeed;
-
             this.currentFrame =
                 (this.currentFrame + 1) % this.zombieFrames.length;
 
+            
             this.tileInfo = this.zombieFrames[this.currentFrame];
 
-            console.log("Current zombie frame:", this.currentFrame);
+            // console.log("Current zombie frame:", this.currentFrame);
         }
     }
+
+
 }
