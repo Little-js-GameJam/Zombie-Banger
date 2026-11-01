@@ -22,7 +22,7 @@ function gameInit() {
     minY = pos.y - size.y / 2;
     maxY = pos.y + size.y / 2;
 
-    player = new  PlayerClass(LJS.vec2(0,0),10); // Starting pos
+    player = new  PlayerClass(LJS.vec2(0,0),2); // Starting pos
     levelDesigner = new LevelDesigner({minX,maxX,minY,maxY});
 
 }
