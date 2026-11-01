@@ -1,5 +1,5 @@
 import * as LJS from 'littlejsengine';
-import { Objects } from './Objects.js';
+import { Enemies, Objects,EneminesEliminated } from './Objects.js';
 import { rayRecHit } from './player.js'; 
 
 // CHANGED: set to true to log every bounce in the browser console.
@@ -40,8 +40,11 @@ export class BulletClass extends LJS.EngineObject {
     }
 
     update() {
-        if (this.lifeTimeOver)
+
+
+        if (this.lifeTimeOver){
             return;
+        }
 
         // How far the bullet can move this frame.
         const movementDistance =
@@ -55,6 +58,7 @@ export class BulletClass extends LJS.EngineObject {
         let nearestDistance = Infinity;
 
         for (const rect of Objects) {
+        
             const hit = rayRecHit(start, this.direction, rect);
 
             if (!hit || !hit.normal)
@@ -73,6 +77,31 @@ export class BulletClass extends LJS.EngineObject {
             }
         }
 
+        for (const enemy of Enemies.values()) {
+            
+            const hit = rayRecHit(start, this.direction, enemy.EnemyHitBox);
+            
+            if (!hit || !hit.normal)
+                continue;
+            
+            const distance = hit.point.subtract(start).length();
+
+            if (
+                distance > 1e-4 &&
+                distance <= movementDistance &&
+                distance < nearestDistance
+            ) {
+                enemy.color.a -= 0.2;
+                enemy.health -= 20;
+                nearestDistance = distance;
+                nearestHit = { ...hit, isEnemy: true };
+            }
+            if(enemy.health == 0){
+                EneminesEliminated.set(enemy.id,enemy);
+            }
+            
+        }
+
         // No collision: move normally.
         if (!nearestHit) {
             this.pos = start.add(
@@ -84,13 +113,13 @@ export class BulletClass extends LJS.EngineObject {
         // Move the bullet to the collision point.
         this.pos = nearestHit.point;
 
-        // CHANGED: log each wall hit (bounce number, position, wall normal).
-        if (DEBUG_BULLETS)
-            console.log(
-                'bullet HIT #' + (this.bouncesHappened + 1),
-                'at', this.pos.x.toFixed(2), this.pos.y.toFixed(2),
-                'normal', nearestHit.normal.x, nearestHit.normal.y
-            );
+        if (nearestHit.isEnemy) {
+
+            
+            this.lifeTimeOver = true;
+            this.destroy();
+            return;
+        }
 
         // If the bullet cannot bounce anymore, destroy it.
         if (this.bouncesHappened >= this.bulletBounceThreshold) {

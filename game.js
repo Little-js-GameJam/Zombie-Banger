@@ -1,10 +1,8 @@
 
 import * as LJS from 'littlejsengine';
 import { PlayerClass } from './player.js';
-import { BulletClass } from './bullet.js';
 import { LevelDesigner } from './LevelDesigner.js';
-const { x: width, y: height } = LJS.getCameraSize();
-
+import { Enemies,addObject,EneminesEliminated } from './Objects.js';
 
 let player;
 let levelDesigner;
@@ -30,12 +28,13 @@ function gameInit() {
 
 
 function gameUpdate() {
-    mouse_pos = LJS.mousePos;
+
 }
 
 function gameUpdatePost() {}
 
 function gameRender() {
+
 
 }
 
