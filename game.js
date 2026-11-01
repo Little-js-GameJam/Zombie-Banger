@@ -3,7 +3,6 @@ import * as LJS from 'littlejsengine';
 import { PlayerClass } from './player.js';
 import { LevelDesigner } from './LevelDesigner.js';
 import { Enemies,addObject,EneminesEliminated } from './Objects.js';
-import { Enemy } from './Enemy.js';
 
 let player;
 let levelDesigner;
@@ -27,20 +26,8 @@ function gameInit() {
 }
 
 
-let temp_enemies = new Map();
+
 function gameUpdate() {
-    mouse_pos = LJS.mousePos;
-
-    for (const id of EneminesEliminated.keys()) {
-        Enemies.delete(id);
-    }
-    EneminesEliminated.clear();
-    // TEMP add a way to add enemies for testing purpose
-    if(LJS.keyWasPressed("NumpadAdd")){
-        const enemy = new Enemy(Enemies.size);
-        addObject("_Enemy",enemy,LJS.RED.copy());
-    }
-
 
 }
 
@@ -48,9 +35,7 @@ function gameUpdatePost() {}
 
 function gameRender() {
 
-    for(const enemy of Enemies.values()){
-        LJS.drawCircle(enemy.pos,enemy.size.x,enemy.color);
-    }
+
 }
 
 function gameRenderPost() {

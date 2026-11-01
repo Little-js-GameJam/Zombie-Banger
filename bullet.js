@@ -78,8 +78,9 @@ export class BulletClass extends LJS.EngineObject {
         }
 
         for (const enemy of Enemies.values()) {
-            const hit = rayRecHit(start, this.direction, enemy);
-        
+            
+            const hit = rayRecHit(start, this.direction, enemy.EnemyHitBox);
+            
             if (!hit || !hit.normal)
                 continue;
             
@@ -95,10 +96,10 @@ export class BulletClass extends LJS.EngineObject {
                 nearestDistance = distance;
                 nearestHit = { ...hit, isEnemy: true };
             }
-
             if(enemy.health == 0){
                 EneminesEliminated.set(enemy.id,enemy);
             }
+            
         }
 
         // No collision: move normally.

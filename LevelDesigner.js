@@ -1,6 +1,7 @@
-import * as LJS from 'littlejsengine'
-import { Objects,addObject } from './Objects.js';
-import { Rectangle } from './primitives.js';
+import * as LJS from 'littlejsengine';
+import { Objects,Enemies,addObject,EneminesEliminated } from './Objects.js';
+
+import { Enemy } from './Enemy.js';
 
 const MAP_URL = '/assets/level/level1/zbLevel1.tmj';
 const TILESET_URL = '/assets/level/jawbreaker_tiles.png';
@@ -8,19 +9,41 @@ const TILESET_URL = '/assets/level/jawbreaker_tiles.png';
 const SHOW_COLLISION_DEBUG = false;
 
 
-let width;
-let height;
+let IS_FIRST_WAVE_LOADED = false;
+let IS_NEXT_WAVE_LOADED = false;
+let WAVE_COUNT = 1;
+// Invisible static collider (drawn only when debugging)
+class Wall extends LJS.EngineObject {
+    constructor(pos, size) {
+        super(pos, size);
+        this.mass = 0; // static, never pushed
+        // CHANGED: was (false, true, false, true). LittleJS 1.28 asserts that
+        // a solid object must also collide with solid objects, which threw an
+        // error here and left Objects empty. The ray and bullet use their own
+        // rectangle maths, so the walls don't need to be physically solid.
+        // (collideSolidObjects, isSolid, collideTiles, collideRaycast)
+        this.setCollision(false, false, false, true);
+    }
 
+    render() {
+        if (SHOW_COLLISION_DEBUG)
+            LJS.drawRect(this.pos, this.size, new LJS.Color(1, 0, 0, 0.4));
+    }
+}
 export class LevelDesigner extends LJS.EngineObject {
 
-    minX=0;
-    maxX=0;
-    minY =0;
-    maxY=0;
-    
-
-    constructor({ minX, maxX, minY, maxY }){
+    constructor({ minX, maxX, minY, maxY, fitCamera = true } = {}) {
         super();
+
+        this.mapWidth = 0;
+        this.mapHeight = 0;
+
+        this.mapMinX = 0;
+        this.mapMaxX = 0;
+        this.mapMinY = 0;
+        this.mapMaxY = 0;
+
+        this.wallLayerData = null;
 
         this.minX = minX;
         this.maxX = maxX;
@@ -31,14 +54,86 @@ export class LevelDesigner extends LJS.EngineObject {
         this.tileLayers = [];
         this.walls = [];
 
-        const WHITE_COPY = LJS.WHITE.copy();
-        // for now we will spawn obstacles around of size 10 from the edge the screen
-        addObject("_Obstacle",new Rectangle(LJS.vec2(this.minX,0),LJS.vec2(1,height)),WHITE_COPY);
-        addObject("_Obstacle",new Rectangle(LJS.vec2(this.maxX,0),LJS.vec2(1,height)),WHITE_COPY);
-        addObject("_Obstacle",new Rectangle(LJS.vec2(0,this.minY),LJS.vec2(width,1)),WHITE_COPY);
-        addObject("_Obstacle",new Rectangle(LJS.vec2(0,this.maxY),LJS.vec2(width,1)),WHITE_COPY);
-        addObject("_Obstacle",new Rectangle(LJS.vec2(20,20),LJS.vec2(5,5)),WHITE_COPY);
+        this.loadMap();
+       
+    }
+
+    
+    isSpawnBlocked(pos, size) {
+        if (!this.wallLayerData) return true;
+
+        const halfSize = size.scale(0.5);
+
+        // 1. Check wall tiles
+        const minX = Math.floor(pos.x - halfSize.x + this.mapWidth / 2);
+        const maxX = Math.floor(pos.x + halfSize.x - 0.0001 + this.mapWidth / 2);
+
+        const minY = Math.floor(this.mapHeight / 2 - (pos.y + halfSize.y));
+        const maxY = Math.floor(this.mapHeight / 2 - (pos.y - halfSize.y) - 0.0001);
+
+        for (let row = minY; row <= maxY; row++) {
+            for (let col = minX; col <= maxX; col++) {
+
+                if (
+                    col < 0 || col >= this.mapWidth ||
+                    row < 0 || row >= this.mapHeight
+                ) return true;
+
+                const gid = this.wallLayerData[row * this.mapWidth + col] & 0x1FFFFFFF;
+
+                if (gid !== 0) return true;
+            }
+        }
+
+        // 2. Check existing zombies
+        for (const enemy of Enemies.values()) {
+            const enemyHalf = enemy.size.scale(0.5);
+
+            const overlapX =
+                Math.abs(pos.x - enemy.pos.x) < halfSize.x + enemyHalf.x;
+
+            const overlapY =
+                Math.abs(pos.y - enemy.pos.y) < halfSize.y + enemyHalf.y;
+
+            if (overlapX && overlapY)
+                return true;
+        }
+
+        // 3. Check player
+        const playerPos = LJS.vec2(0, 0);
+        const minSpawnDistance = 5;
+
+        const distance = pos.distance(playerPos);
+
+        if (distance < minSpawnDistance)
+            return true;
+            
+
+        return false;
+    }
+
+    getValidSpawnPosition(size) {
+        const margin = 2;
         
+        for (let i = 0; i < 100; i++) {
+        
+            const pos = LJS.vec2(
+                LJS.rand(
+                    this.mapMinX + margin,
+                    this.mapMaxX - margin
+                ),
+                LJS.rand(
+                    this.mapMinY + margin,
+                    this.mapMaxY - margin
+                )
+            );
+        
+            if (!this.isSpawnBlocked(pos, size))
+                return pos;
+        }
+    
+        console.warn("Could not find a valid zombie spawn position");
+        return null;
     }
 
     async loadMap() {
@@ -48,15 +143,27 @@ export class LevelDesigner extends LJS.EngineObject {
                 throw new Error(`Failed to load map: ${response.status}`);
 
             const map = await response.json();
+            
+            this.mapWidth = map.width;
+            this.mapHeight = map.height;
 
             // 1 tile = 1 world unit, map centered on (0, 0)
             const firstGid = map.tilesets[0].firstgid;
+            this.mapMinX = -map.width / 2;
+            this.mapMaxX = map.width / 2;
 
+            this.mapMinY = -map.height / 2;
+            this.mapMaxY = map.height / 2;
+
+            
             // CHANGED: build colliders first. They don't need the tileset, so
             // a tileset/drawing problem can no longer leave the level without
             // collisions, and walls exist from the first frame.
             const wallLayer = map.layers.find(l => l.name === 'walls');
-            if (wallLayer) this.buildColliders(map, wallLayer);
+            if (wallLayer) {
+                this.wallLayerData = wallLayer.data;
+                this.buildColliders(map, wallLayer);
+            }
             // CHANGED: confirms the JSON walls became colliders in Objects
             console.log('wall colliders from JSON:', this.walls.length,
                 '| Objects total:', Objects.length);
@@ -65,6 +172,7 @@ export class LevelDesigner extends LJS.EngineObject {
             const tileset = LJS.loadSprite(
                 TILESET_URL,
                 LJS.vec2(map.tilewidth, map.tileheight)
+                
             );
             await LJS.spritesReady();
 
@@ -87,15 +195,19 @@ export class LevelDesigner extends LJS.EngineObject {
             }
 
             console.log('Map loaded');
+            // Load the first wave
+            this.loadWaves();
+            IS_FIRST_WAVE_LOADED = true;
+
         } catch (error) {
             console.error('Error loading map:', error);
         }
     }
 
-    render(){
-        Objects.forEach(element => {
-            LJS.drawRect(element.pos,element.size,element.color);
-        });
+    // Draws one Tiled layer using the loaded tileset
+    buildTileLayer(map, layer, tileset, firstGid, renderOrder) {
+        const size = LJS.vec2(map.width, map.height);
+        const bottomLeft = LJS.vec2(-map.width / 2, -map.height / 2);
 
         const tileLayer = new LJS.TileLayer(
             bottomLeft, size, tileset, renderOrder
@@ -146,6 +258,42 @@ export class LevelDesigner extends LJS.EngineObject {
         }
     }
 
-    // LevelDesigner itself draws nothing
+    loadWaves(){
+        for(let c = 0; c<2*WAVE_COUNT; c++){
+            const zombieSize = LJS.vec2(1, 1);
+            const spawnPos =this.getValidSpawnPosition(zombieSize);
+            if(spawnPos){
+                const enemy = new Enemy(spawnPos,zombieSize,Enemies.size);
+                addObject("_Enemy",enemy,LJS.RED.copy());
+            }
+        }
+        console.log("WAVES LOADED");
+        IS_NEXT_WAVE_LOADED = true;
+    }
+
+    update(){
+        
+        if(IS_FIRST_WAVE_LOADED && Enemies.size == 0){
+           IS_NEXT_WAVE_LOADED = false;
+        }
+        if(!IS_NEXT_WAVE_LOADED && IS_FIRST_WAVE_LOADED){
+            WAVE_COUNT++;
+            this.loadWaves();
+        }
+
+        for (const id of EneminesEliminated.keys()) {
+            Enemies.delete(id);
+        }
+
+        EneminesEliminated.clear();
+
+
+    }
     render() {}
 }
+
+
+
+
+
+

@@ -22,6 +22,7 @@ let mouseWasPressed = false;
 // Returns null if the ray misses the rectangle.
 export function rayRecHit(start, dir, rect) {
 
+    
     // A rectangle is defined by its center and its size.
     // Divide the size by 2 to calculate the distance from the center to each edge.
     const halfX = rect.size.x / 2;
@@ -313,7 +314,6 @@ function CalculatePath(
 
 // The player object inherits functionality from LittleJS.
 export class PlayerClass extends LJS.EngineObject {
-
     // Current mouse position in world coordinates.
     mousePosLoc = LJS.vec2(0, 0);
 
@@ -325,12 +325,13 @@ export class PlayerClass extends LJS.EngineObject {
     playerStartPos = LJS.vec2(0);
     bullets = [];
     startMoving = false;
+    isPlayer = true;
 
     constructor(pos, p_s) {
-
         // Initialize the inherited EngineObject at pos.
         super(pos);
-
+        
+        this.isPlayer = true;
         // Store the player's size.
         this.player_size = p_s;
 
