@@ -2,6 +2,7 @@
 import * as LJS from 'littlejsengine';
 import { Objects } from './Objects.js';
 import { BulletClass } from './bullet.js';
+import { GameInitialized,IsGameEnded, IsGameStarted,SetGameInitialized } from './game.js';
 
 
 // Stores the ray segments calculated for rendering.
@@ -13,7 +14,9 @@ let MaxBounces = 6;
 export function damagePlayer(damage) {
     PlayerHealth = Math.max(0, PlayerHealth - damage);
 }
-
+export function setPlayerHealth(health){
+    PlayerHealth = Math.max(100,PlayerHealth + health);
+}
 export function IncrBounces(){
     if(Bounces<MaxBounces){
         Bounces++;
@@ -331,6 +334,8 @@ function CalculatePath(
 }
 
 
+
+
 // The player object inherits functionality from LittleJS.
 export class PlayerClass extends LJS.EngineObject {
 
@@ -342,7 +347,6 @@ export class PlayerClass extends LJS.EngineObject {
     player_size = 0;
 
     // These properties are currently not used in the ray logic.
-    angle_of_trajectory = 0;
     playerStartPos = LJS.vec2(0);
     bullets = [];
     startMoving = false;
@@ -372,13 +376,14 @@ export class PlayerClass extends LJS.EngineObject {
         this.bullets.push(bullet);
     } 
 
+    
+
     update() {
+        
 
-        document.body.addEventListener('click', function() {
-            mouseWasPressed = true; 
-        });
+        if(IsGameEnded) return;
 
-
+        if(LJS.mouseWasPressed(0)) mouseWasPressed = true;
         // Clear the Map that will contain the newly calculated
         // ray path for this frame.
         NextRayDists.clear();
@@ -422,18 +427,24 @@ export class PlayerClass extends LJS.EngineObject {
             this.fireBullet();
             mouseWasPressed = false;
         }
+
+        
     }
 
     
 
     render() {
 
+        if(IsGameEnded) return;
+
         if (PlayerHealth < this.previousHealth) {
             this.color.a = PlayerHealth / 100;
         }
         this.previousHealth = PlayerHealth;
+        
 
         // Draw the player as a green circle.
+        // Replace this with actual player sprite and add a damage indication
         LJS.drawCircle(
             this.pos,
             this.player_size,
