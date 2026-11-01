@@ -413,8 +413,8 @@ export class PlayerClass extends LJS.EngineObject {
         // Draw the mouse position as a small red circle.
         LJS.drawCircle(
             this.mousePosLoc,
-            5,
-            LJS.RED
+            0.8,
+            LJS.BLACK
         );
 
         // Draw every segment of the calculated ray path.
@@ -422,8 +422,8 @@ export class PlayerClass extends LJS.EngineObject {
             LJS.drawLine(
                 element.start,
                 element.end,
-                1,
-                LJS.RED
+                0.1,
+                LJS.GRAY
             );
         });
     }

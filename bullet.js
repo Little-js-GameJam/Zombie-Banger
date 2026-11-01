@@ -2,6 +2,9 @@ import * as LJS from 'littlejsengine';
 import { Enemies, Objects,EneminesEliminated } from './Objects.js';
 import { rayRecHit } from './player.js'; 
 
+// CHANGED: set to true to log every bounce in the browser console.
+const DEBUG_BULLETS = true;
+
 export class BulletClass extends LJS.EngineObject {
 
     // Direction in which the bullet currently travels.
@@ -11,7 +14,11 @@ export class BulletClass extends LJS.EngineObject {
     doesPierce = false;
     bulletBounceThreshold = 2;
     bouncesHappened = 0;
-    bulletVelocity = 400; // Units per second
+
+    // CHANGED: was 400. The level is now in tile units (map is 25 x 15 units),
+    // so 400 units/s crossed the whole map in ~4 frames and used up all
+    // bounces almost instantly. 30 units/s is about 1 second per crossing.
+    bulletVelocity = 30; // Units (tiles) per second
 
     lifeTimeOver = false;
 
@@ -22,6 +29,14 @@ export class BulletClass extends LJS.EngineObject {
         this.direction = targetPos
             .subtract(startPos)
             .normalize();
+
+        // CHANGED: log where the bullet starts and which way it goes.
+        if (DEBUG_BULLETS)
+            console.log(
+                'bullet fired at', this.pos.x.toFixed(2), this.pos.y.toFixed(2),
+                'dir', this.direction.x.toFixed(2), this.direction.y.toFixed(2),
+                'colliders:', Objects.length
+            );
     }
 
     update() {
@@ -129,11 +144,12 @@ export class BulletClass extends LJS.EngineObject {
     }
 
     render() {
-        // Draw the bullet at its actual position.
+        // CHANGED: bullet size reduced to fit the tile-unit scale
+        // (was 0.5, i.e. half a tile).
         LJS.drawRect(
             this.pos,
-            LJS.vec2(2, 2),
+            LJS.vec2(0.3, 0.3),
             LJS.WHITE
         );
     }
-}
+}   
