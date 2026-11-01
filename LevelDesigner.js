@@ -5,6 +5,18 @@ import { Enemy } from './Enemy.js';
 
 const MAP_URL = '/assets/level/level1/zbLevel1.tmj';
 const TILESET_URL = '/assets/level/jawbreaker_tiles.png';
+
+
+const ZOMBIE_IMAGE = '/assets/sprites/spritesheet.png';
+const ZOMBIE_JSON = '/assets/sprites/zomsprites.json';
+// Size of the whole zombie spritesheet image (from "meta.size" in the JSON).
+// loadSprite is given this as the "frame" size so its grid check passes;
+// the real frame rectangles come from the JSON.
+const ZOMBIE_SHEET_SIZE = LJS.vec2(967, 1114);
+// One zombie frame is 241 x 222 pixels
+const ZOMBIE_FRAME_W = 241;
+const ZOMBIE_FRAME_H = 222;
+
 // CHANGED: on for now. Red boxes = exactly what the ray and bullets collide with.
 const SHOW_COLLISION_DEBUG = false;
 
@@ -44,6 +56,7 @@ export class LevelDesigner extends LJS.EngineObject {
         this.mapMaxY = 0;
 
         this.wallLayerData = null;
+        this.zombieFrames = [];
 
         this.minX = minX;
         this.maxX = maxX;
@@ -172,9 +185,47 @@ export class LevelDesigner extends LJS.EngineObject {
             const tileset = LJS.loadSprite(
                 TILESET_URL,
                 LJS.vec2(map.tilewidth, map.tileheight)
-                
             );
+
+            // Zombie sheet: treat the whole image as one "frame" so loadSprite's
+            // grid check passes. Real frame rectangles come from the JSON below.
+            // (loadSprite must be called BEFORE awaiting spritesReady.)
+            // Measure the real PNG so frame positions always match the picture,
+            // even if the PNG was exported at a different size than the JSON says.
+            const probe = new Image();
+            probe.src = ZOMBIE_IMAGE;
+            await probe.decode();
+            const zombieSheet = LJS.loadSprite(
+                ZOMBIE_IMAGE,
+                LJS.vec2(probe.naturalWidth, probe.naturalHeight)
+            );
+            const atlasJson = await (await fetch(ZOMBIE_JSON)).json();
+            const sx = probe.naturalWidth / atlasJson.meta.size.w;
+            const sy = probe.naturalHeight / atlasJson.meta.size.h;
+            console.log('PNG size:', probe.naturalWidth, probe.naturalHeight,
+                '| JSON size:', atlasJson.meta.size.w, atlasJson.meta.size.h);
+
             await LJS.spritesReady();
+
+            // Keep only the idle frames, sort them by the number in the
+            // filename (the JSON lists them out of order), and turn each
+            // into a TileInfo pointing at the zombie texture.
+            // tweak these until the zombie sits fully in the frame (units are pixels of the PNG)
+            const OFFSET_X = 100;
+            const OFFSET_Y = 0;
+
+            this.zombieFrames = atlasJson.frames
+                .filter(f => f.filename.startsWith('skeleton-idle_'))
+                .sort((a, b) =>
+                    parseInt(a.filename.split('_')[1]) - parseInt(b.filename.split('_')[1]))
+                .map(f => new LJS.TileInfo(
+                    LJS.vec2(f.frame.x * sx + OFFSET_X, f.frame.y * sy + OFFSET_Y),
+                    LJS.vec2(f.frame.w * sx,  f.frame.h * sy),
+                    zombieSheet.textureInfo
+                ));
+
+            console.log('Zombie frames:', this.zombieFrames.length); // should be 17
+            console.log('First zombie frame:', this.zombieFrames[0]);
 
             map.layers.forEach((layer, i) => {
                 if (layer.type !== 'tilelayer') return;
@@ -260,11 +311,20 @@ export class LevelDesigner extends LJS.EngineObject {
 
     loadWaves(){
         for(let c = 0; c<2*WAVE_COUNT; c++){
-            const zombieSize = LJS.vec2(1, 1);
+            // keep the sprite's 241x222 aspect ratio so it isn't squashed
+            const zombieSize = LJS.vec2(2, 2 * ZOMBIE_FRAME_H / ZOMBIE_FRAME_W);
             const spawnPos =this.getValidSpawnPosition(zombieSize);
             if(spawnPos){
-                const enemy = new Enemy(spawnPos,zombieSize,Enemies.size);
-                addObject("_Enemy",enemy,LJS.RED.copy());
+                const enemy = new Enemy(
+                    spawnPos,
+                    zombieSize,
+                    Enemies.size,
+                    this.zombieFrames
+                );
+
+                enemy.mirror = spawnPos.x > 0;   // flip when spawned on the right half of the map
+
+                addObject("_Enemy", enemy, LJS.WHITE.copy());
             }
         }
         console.log("WAVES LOADED");
@@ -291,9 +351,3 @@ export class LevelDesigner extends LJS.EngineObject {
     }
     render() {}
 }
-
-
-
-
-
-
