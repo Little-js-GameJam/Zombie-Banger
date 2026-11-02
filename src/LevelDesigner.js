@@ -3,12 +3,12 @@ import { Objects,Enemies,addObject,EneminesEliminated } from './Objects.js';
 import { IncrWaveCount,WAVE_COUNT,setGameEnd} from './game.js';
 import { Enemy } from './Enemy.js';
 import { UpgradeMenu } from "./UpgradeMenu.js";
-const MAP_URL = '/assets/level/level1/zbLevel1.tmj';
-const TILESET_URL = '/assets/level/jawbreaker_tiles.png';
+const MAP_URL = 'level/level1/zbLevel1.tmj';
+const TILESET_URL = 'level/jawbreaker_tiles.png';
 
 
-const ZOMBIE_IMAGE = '/assets/sprites/spritesheet.png';
-const ZOMBIE_JSON = '/assets/sprites/zomsprites.json';
+const ZOMBIE_IMAGE = 'sprites/spritesheet.png';
+const ZOMBIE_JSON = 'sprites/zomsprites.json';
 // Size of the whole zombie spritesheet image (from "meta.size" in the JSON).
 // loadSprite is given this as the "frame" size so its grid check passes;
 // the real frame rectangles come from the JSON.
@@ -22,8 +22,8 @@ const SHOW_COLLISION_DEBUG = false;
 
 //player sprites 
 
-const PLAYER_IMAGE = '/assets/sprites/player.png';
-const PLAYER_JSON = '/assets/sprites/player.json';
+const PLAYER_IMAGE = 'sprites/player.png';
+const PLAYER_JSON = 'sprites/player.json';
 
 const PLAYER_FRAME_W = 313;
 const PLAYER_FRAME_H = 207;

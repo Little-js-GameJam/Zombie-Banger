@@ -1,6 +1,6 @@
 import * as LJS from "littlejsengine";
 
-import { BulletClass } from "./Bullet.js";
+import { BulletClass } from "./bullet.js";
 import { IsGameEnded } from "./game.js";
 import { Guideline } from "./guideline.js";
 import { PlayerStats } from "./PlayerStats.js";
@@ -11,10 +11,10 @@ import { Sprites } from "./Sprites.js";
 // --------------------------------------------------
 
 // SET THESE to where your player sheet and JSON really live.
-const PLAYER_IMAGE = "/assets/playerSprite/playerSprite.png";
-const PLAYER_JSON = "/assets/playerSprite/spritesheet.json";
+const PLAYER_IMAGE = "playerSprite/playerSprite.png";
+const PLAYER_JSON = "playerSprite/spritesheet.json";
 
-const shootSound = new LJS.Sound("/assets/sounds/shoot.mp3");
+const shootSound = new LJS.Sound("sounds/shoot.mp3");
 
 // Each frame in the JSON is 313 x 207 pixels.
 const PLAYER_FRAME_W = 313;

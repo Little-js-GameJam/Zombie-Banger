@@ -28,7 +28,7 @@ totalZombiesKilledCurrent = 0;
 EneminesEliminated.clear();   // import it from Objects.js
 
 // music shit !
-const bgMusic = new Audio("/assets/sounds/bgmusic.mp3");
+const bgMusic = new Audio("sounds/bgmusic.mp3");
 bgMusic.loop = true;
 bgMusic.volume = 0.5;
 
@@ -92,6 +92,7 @@ export async function startGame() {
 //Currently give player some health after each wave
 export function IncrWaveCount() {
   WAVE_COUNT++;
+  player.stats.addBullet(WAVE_COUNT*5);
 }
 
 export function ResetWaveCount() {
@@ -485,16 +486,16 @@ document.fonts.ready.then(() => {
     gameRender,
     gameRenderPost,
     [
-      "/assets/lvl1_background_2.png",
-      "/assets/for_menu/button_template.png",
-      "/assets/for_menu/back_button.png",
-      "/assets/for_menu/main_menu.png",
-      "/assets/Logo.png",
-      "/assets/for_menu/button_template_shadow.png",
-      "/assets/bullet.png",
-      "/assets/playerSprite/playerSprite.png",
-      "/assets/sprites/spritesheet.png",
-      "/assets/Leaderboard.png"
+      "lvl1_background_2.png",
+      "for_menu/button_template.png",
+      "for_menu/back_button.png",
+      "for_menu/main_menu.png",
+      "Logo.png",
+      "for_menu/button_template_shadow.png",
+      "bullet.png",
+      "playerSprite/playerSprite.png",
+      "sprites/spritesheet.png",
+      "Leaderboard.png"
     ],
   );
 });

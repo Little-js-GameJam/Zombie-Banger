@@ -1,7 +1,7 @@
 import * as LJS from "littlejsengine";
 
 import { Objects } from "./Objects.js";
-import { rayRecHit } from "./Player.js";
+import { rayRecHit } from "./player.js";
 
 // Look and feel. Tweak these to taste.
 const GUIDELINE_WIDTH = 0.2; // line thickness in world units
@@ -116,7 +116,7 @@ export class Guideline {
 
     // Prefer the overlay canvas (always on top, real canvas gradients).
     // Fall back to the main canvas, then to plain LittleJS lines.
-    const ctx = LJS.overlayContext ?? LJS.mainContext;
+    const ctx = LJS.mainContext;
 
     if (!ctx) {
       this.renderChunked();
