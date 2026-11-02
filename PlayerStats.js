@@ -22,7 +22,20 @@ export class PlayerStats {
   fireCooldown = 0.5;
 
   guidelineDistance = 50;
+  
+
+  totalFiredBullets =0;
+  availableBullets = 10;
 
   // Bullet configuration
   bulletStats = new BulletStats();
+
+  addBullet(val){
+    this.availableBullets += val;
+  }
+
+  subBullet(){
+    this.availableBullets--;
+  }
+
 }

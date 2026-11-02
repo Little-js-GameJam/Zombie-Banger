@@ -1,7 +1,7 @@
 import * as LJS from "littlejsengine";
 
 import { Enemies, Objects, EneminesEliminated } from "./Objects.js";
-import { rayRecHit } from "./Player.js";
+import { rayRecHit } from "./player.js";
 import { Sprites } from "./Sprites.js";
 
 // Set to true to log fired bullets, bounces and enemy hits in the console.

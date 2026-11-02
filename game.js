@@ -1,5 +1,5 @@
 import * as LJS from "littlejsengine";
-import { PlayerClass } from "./Player.js";
+import { PlayerClass } from "./player.js";
 import { LevelDesigner, ResetWaveVals } from "./LevelDesigner.js";
 import {
   COLOR_TEXT,
@@ -14,6 +14,9 @@ export let WAVE_COUNT = 1;
 export let IsGameEnded = false;
 export let IsGameStarted = false;
 export let GameInitialized = false;
+
+let totalZombiesKilledCurrent = 0; 
+let totalZombiesKilled = 0; 
 
 // music shit !
 const bgMusic = new Audio("/assets/sounds/bgmusic.mp3");
@@ -47,10 +50,13 @@ function getUIScale() {
 
   return Math.min(screen.x / 1280, screen.y / 720);
 }
-
+let isUIInitialized = false;
 export async function startGame() {
   LJS.engineObjectsDestroy();
-  const uiSystem = new LJS.UISystemPlugin();
+  if(!isUIInitialized){
+    const uiSystem = new LJS.UISystemPlugin();
+    isUIInitialized =true;
+  }
   ResetWaveCount();
   ResetWaveVals();
   SetGameInitialized(false);
@@ -180,7 +186,7 @@ let backButtonImage;
 let menuImage;
 let logoImage;
 let buttonShadowImage;
-
+let leaderBoardImage;
 function loadMenuImages() {
   backgroundImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(1099, 661), 0);
   buttonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 120), 1);
@@ -188,6 +194,8 @@ function loadMenuImages() {
   menuImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 400), 3);
   logoImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(1024, 1024), 4);
   buttonShadowImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 120), 5);
+  leaderBoardImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(400, 400), 9);
+  
 
   console.log("IMAGES LOADED");
 }
@@ -231,14 +239,12 @@ function isButtonClicked(pos, size) {
 function gameUpdate() {
   mousePressed = false;
   if (LJS.mouseWasPressed(0)) mousePressed = true;
+  if(!IsGameStarted) return;
 
-  //Let player choose the number of Bounces
-  // if(LJS.keyWasPressed('NumpadAdd') ){
-  //     IncrBounces();
-  // }
-  // else if(LJS.keyWasPressed('NumpadSubtract')){
-  //    DecrBounces();
-  // }
+  if(player.stats.availableBullets <= 0){
+    IsGameEnded = true;
+  }
+
 }
 
 function gameUpdatePost() {
@@ -247,7 +253,24 @@ function gameUpdatePost() {
   // }
   //Change this to check if number of bullets run out
 }
-function gameRender() {}
+function gameRender() {
+
+  if(!IsGameStarted) return;
+
+  const scale = getUIScale();
+  const screen = LJS.mainCanvasSize;
+
+  LJS.drawTextScreen(
+    `Bullets: ${player.stats.availableBullets}`,
+    LJS.vec2(screen.x * 0.95,screen.y * 0.05),
+    18,
+    LJS.WHITE,
+    1,
+    LJS.WHITE,
+    'center'
+  )
+
+}
 
 function gameRenderPost() {
   const scale = getUIScale();
@@ -375,11 +398,42 @@ function gameRenderPost() {
   }
 
   if (IsGameEnded) {
-    const GameEndPopUpSize = LJS.vec2(4, 4).scale(scale);
-    const GameEndPopUpPos = LJS.vec2(0, 0);
+    const GameEndPopUpSize = LJS.vec2(400, 400).scale(scale);
+    const GameEndPopUpPos = LJS.vec2(screen.x * 0.5, screen.y * 0.5);
     LJS.drawRect(LJS.vec2(0, 0), LJS.mainCanvasSize, hexToColor("#2f2e2dbf"));
 
-    LJS.drawTile(GameEndPopUpPos, GameEndPopUpSize, gameEndtexture);
+    LJS.drawTile(
+      GameEndPopUpPos, 
+      GameEndPopUpSize, 
+      leaderBoardImage,LJS.WHITE,0,false,undefined,false,true
+    );
+
+    const lines = [
+      [`Highest Number of zombies killed: ${Math.max(totalZombiesKilledCurrent,totalZombiesKilled)}`],
+      [`Number of Bullets fired: ${player.stats.totalFiredBullets}`]
+    ]
+
+    const startY = GameEndPopUpPos.y - GameEndPopUpSize.y / 2 + 50 * scale;
+    const fontSize = Math.max(14, Math.floor(18 * scale));
+    const lineHeight = 28 * scale;
+    const groupGap = 12 * scale;
+
+    let currentY = startY;
+    lines.forEach((group) => {
+    group.forEach((line) => {
+      LJS.drawTextScreen(
+        line,
+        LJS.vec2(screen.x*0.5, currentY),
+        fontSize,
+        COLOR_TEXT,
+        1,
+        COLOR_SLATE,
+        "center",
+      );
+      currentY += lineHeight;
+    });
+    currentY += groupGap; // Add a bit of space after each full rule group
+  });
 
     const restartButtonSize = LJS.vec2(200, 120).scale(scale);
     const restartButtonPos = screen
@@ -432,6 +486,7 @@ document.fonts.ready.then(() => {
       "/assets/bullet.png",
       "/assets/playerSprite/playerSprite.png",
       "/assets/sprites/spritesheet.png",
+      "/assets/Leaderboard.png"
     ],
   );
 });

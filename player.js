@@ -274,7 +274,8 @@ export class PlayerClass extends LJS.EngineObject {
 
       // Copy effects so future upgrades don't affect existing bullets.
       bullet.effects = [...bulletStats.effects];
-
+      this.stats.totalFiredBullets++;
+      this.stats.subBullet();
       this.bullets.push(bullet);
     }
   }
