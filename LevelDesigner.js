@@ -20,6 +20,15 @@ const ZOMBIE_FRAME_H = 222;
 // CHANGED: on for now. Red boxes = exactly what the ray and bullets collide with.
 const SHOW_COLLISION_DEBUG = false;
 
+//player sprites 
+
+const PLAYER_IMAGE = '/assets/sprites/player.png';
+const PLAYER_JSON = '/assets/sprites/player.json';
+
+const PLAYER_FRAME_W = 313;
+const PLAYER_FRAME_H = 207;
+
+
 
 let IS_FIRST_WAVE_LOADED = false;
 let IS_NEXT_WAVE_LOADED = false;
