@@ -1,0 +1,56 @@
+{
+  "frames": {
+    "B100": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 125,
+        "h": 111
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "w": 125,
+        "h": 111
+      }
+    },
+    "B101": {
+      "frame": {
+        "x": 0,
+        "y": 111,
+        "w": 125,
+        "h": 111
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "w": 125,
+        "h": 111
+      }
+    },
+    "B102": {
+      "frame": {
+        "x": 0,
+        "y": 222,
+        "w": 125,
+        "h": 111
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "w": 125,
+        "h": 111
+      }
+    }
+  },
+  "meta": {
+    "app": "https://codeshack.io/images-sprite-sheet-generator/",
+    "image": "spritesheet.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 125,
+      "h": 333
+    },
+    "scale": "1"
+  }
+}
