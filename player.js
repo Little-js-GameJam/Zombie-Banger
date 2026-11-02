@@ -1,7 +1,78 @@
-import * as LJS from "littlejsengine";
+import * as LJS from 'littlejsengine';
+import { Objects } from './Objects.js';
+import { BulletClass } from './bullet.js';
+import { IsGameEnded} from './game.js';
 
-import { BulletClass } from "./bullet.js";
-import { IsGameEnded } from "./game.js";
+// ---- Player sprite settings -------------------------------------------
+// SET THESE to where your player sheet and JSON really live.
+const PLAYER_IMAGE = '/assets/playerSprite/playerSprite.png';
+const PLAYER_JSON = '/assets/playerSprite/spritesheet.json';
+
+const shootSound = new LJS.Sound('/assets/sounds/shoot.mp3');
+
+// Each frame in the JSON is 313 x 207 pixels
+const PLAYER_FRAME_W = 313;
+const PLAYER_FRAME_H = 207;
+
+// How wide the player is drawn in world units (height follows the aspect ratio)
+const PLAYER_SPRITE_WIDTH = 3;
+
+// Seconds per animation frame
+const PLAYER_ANIM_SPEED = 0.06;
+
+
+
+// Which way the sprite faces in the art, expressed as a rotation fix.
+//   faces RIGHT -> -Math.PI / 2   (default)
+//   faces UP    ->  0
+//   faces LEFT  ->  Math.PI / 2
+//   faces DOWN  ->  Math.PI
+// If the player points the wrong way, change this one value.
+const PLAYER_ANGLE_OFFSET = -Math.PI / 2 - (7 * Math.PI / 180);
+
+// Loaded once and shared. Resolves to an array of TileInfo frames.
+let playerFramesPromise = null;
+
+function loadPlayerFrames() {
+    if (playerFramesPromise) return playerFramesPromise;
+
+    playerFramesPromise = (async () => {
+        // Measure the real PNG so frame positions always match the picture,
+        // even if the PNG size differs from what the JSON says.
+        const probe = new Image();
+        probe.src = PLAYER_IMAGE;
+        await probe.decode();
+
+        const sheet = LJS.loadSprite(
+            PLAYER_IMAGE,
+            LJS.vec2(probe.naturalWidth, probe.naturalHeight)
+        );
+        const json = await (await fetch(PLAYER_JSON)).json();
+        const sx = probe.naturalWidth / json.meta.size.w;
+        const sy = probe.naturalHeight / json.meta.size.h;
+
+        await LJS.spritesReady();
+
+        // Sort by the number at the end of the filename
+        const num = f => parseInt(f.filename.split('_').pop());
+
+        const frames = json.frames
+            .slice()
+            .sort((a, b) => num(a) - num(b))
+            .map(f => new LJS.TileInfo(
+                LJS.vec2(f.frame.x * sx, f.frame.y * sy),
+                LJS.vec2(f.frame.w * sx, f.frame.h * sy),
+                sheet.textureInfo
+            ));
+
+        console.log('Player frames:', frames.length); // should be 20
+        return frames;
+    })();
+
+    return playerFramesPromise;
+}
+// -------------------------------------------------------------------------
+
 import { Guideline } from "./guideline.js";
 import { PlayerStats } from "./PlayerStats.js";
 
@@ -135,56 +206,141 @@ export class PlayerClass extends LJS.EngineObject {
 
   startMoving = false;
 
-  // Lets other code (e.g. enemies) recognise the player.
-  isPlayer = true;
+    color = LJS.GREEN.copy();
+    // Current mouse position in world coordinates.
+    mousePosLoc = LJS.vec2(0, 0);
 
-  // Upgrades modify this object (fire rate, bullet stats, guideline, ...).
-  stats = new PlayerStats();
+    // Radius used to draw the player.
+    player_size = 0;
 
-  fireCooldownRemaining = 0;
+    // These properties are currently not used in the ray logic.
+    playerStartPos = LJS.vec2(0);
+   
+    bullets = [];
 
-  // Set by LevelDesigner while the upgrade menu is open.
-  inputLocked = false;
+    startMoving = false;
 
-  // Aiming guideline (white line that fades with distance).
-  guideline = new Guideline();
+    fireCooldownRemaining = 0;
 
-  constructor(pos, p_s) {
-    super(pos);
+    stats = new PlayerStats();
+    guideline = new Guideline();
 
-    this.player_size = p_s;
-    this.playerStartPos = this.pos;
-  }
+    constructor(pos, p_s) {
+        // Initialize the inherited EngineObject at pos.
+        super(pos);
+        
+        // Store the player's size.
+        this.player_size = p_s;
 
-  // Fires bullets according to the player's current stats.
-  fireBullet() {
-    const bulletStats = this.stats.bulletStats;
+        // Remember the initial player position.
+        this.playerStartPos = this.pos;
+    } 
 
-    const baseDirection = LJS.mousePos.subtract(this.pos).normalize();
+    fireBullet() {
+        const bulletStats = this.stats.bulletStats;
+    
+        const baseDirection = LJS.mousePos.subtract(this.pos).normalize();
+    
+        const count = bulletStats.fireCount;
+    
+        for (let i = 0; i < count; i++) {
+          // Center bullet spread around the mouse direction.
+          const offset = (i - (count - 1) / 2) * bulletStats.spreadAngle;
+        
+          const direction = baseDirection.rotate((offset * Math.PI) / 180);
+        
+          const targetPos = this.pos.add(direction);
+        
+          // Create the bullet.
+          const bullet = new BulletClass(this.pos, targetPos, this);
+        
+          // Copy current player bullet stats.
+          bullet.bulletVelocity = bulletStats.velocity;
+          bullet.damage = bulletStats.damage;
+          bullet.bulletBounceThreshold = bulletStats.bounceThreshold;
+          bullet.bulletPierceThreshold = bulletStats.bulletPierceThreshold;
+        
+          // Copy effects so future upgrades don't affect existing bullets.
+          bullet.effects = [...bulletStats.effects];
+        
+          this.bullets.push(bullet);
+        }
+      }
 
-    const count = bulletStats.fireCount;
+    
 
-    for (let i = 0; i < count; i++) {
-      // Center bullet spread around the mouse direction.
-      const offset = (i - (count - 1) / 2) * bulletStats.spreadAngle;
+    update() {
+        
 
-      const direction = baseDirection.rotate((offset * Math.PI) / 180);
+        if(IsGameEnded) return;
 
-      const targetPos = this.pos.add(direction);
+        if(LJS.mouseWasPressed(0)) mouseWasPressed = true;
+        // Clear the Map that will contain the newly calculated
+        // ray path for this frame.
+        NextRayDists.clear();
 
-      // Create the bullet.
-      const bullet = new BulletClass(this.pos, targetPos, this);
+        // Restart the segment numbering for this frame.
+        index = 0;
 
-      // Copy current player bullet stats.
-      bullet.bulletVelocity = bulletStats.velocity;
-      bullet.damage = bulletStats.damage;
-      bullet.bulletBounceThreshold = bulletStats.bounceThreshold;
-      bullet.bulletPierceThreshold = bulletStats.bulletPierceThreshold;
+        // Get the current mouse position.
+        this.mousePosLoc = LJS.mousePos;
 
-      // Copy effects so future upgrades don't affect existing bullets.
-      bullet.effects = [...bulletStats.effects];
+        // The player is the origin of the first ray.
+        const start_pos = this.pos;
 
-      this.bullets.push(bullet);
+        // Calculate a direction pointing from the player
+        // toward the mouse.
+        //
+        // mouse position - player position = direction vector
+        const dir = this.mousePosLoc.subtract(this.pos).normalize();
+
+        // Angle used to rotate the sprite toward the mouse.
+        // LittleJS angles are measured clockwise from "up", which is
+        // exactly what vec2.angle() returns.
+        this.aimAngle = dir.angle() + PLAYER_ANGLE_OFFSET;
+
+        // Advance the idle animation
+        if (this.playerFrames.length) {
+            this.playerAnimTimer += LJS.timeDelta;
+            while (this.playerAnimTimer >= PLAYER_ANIM_SPEED) {
+                this.playerAnimTimer -= PLAYER_ANIM_SPEED;
+                this.playerFrame =
+                    (this.playerFrame + 1) % this.playerFrames.length;
+            }
+        }
+
+        // Calculate the ray path:
+        // - Up to three hit-ending segments.
+        // - Each segment has a maximum length of 2000.
+        // - The first segment starts at the player.
+        // - Store all segments in NextRayDists.
+        CalculatePath(
+            start_pos,
+            dir,
+            Bounces,
+            2000,
+            start_pos,
+            NextRayDists
+        );
+
+        // Swap the Maps:
+        // The newly calculated path becomes the render path.
+        // The old render Map becomes the temporary Map.
+        [RayDists, NextRayDists] = [NextRayDists, RayDists];
+
+        // Fire using LittleJS mouse input.
+        if (LJS.mouseWasPressed(0) && this.fireCooldownRemaining <= 0) {
+          this.fireBullet();
+          this.fireCooldownRemaining = this.stats.fireCooldown;
+        }
+
+    
+        if (mouseWasPressed) {
+            this.fireBullet();
+            mouseWasPressed = false;
+        }
+
+        
     }
   }
 
@@ -201,8 +357,29 @@ export class PlayerClass extends LJS.EngineObject {
       this.fireCooldownRemaining - LJS.timeDelta,
     );
 
-    // Rebuild the aiming guideline.
-    const dir = this.mousePosLoc.subtract(this.pos).normalize();
+        if (this.playerFrames.length) {
+            // Draw the player sprite, rotated toward the mouse.
+            // Alpha follows the damage indication used by the old circle.
+            const spriteSize = LJS.vec2(
+                PLAYER_SPRITE_WIDTH,
+                PLAYER_SPRITE_WIDTH * PLAYER_FRAME_H / PLAYER_FRAME_W
+            );
+
+            LJS.drawTile(
+                this.pos,
+                spriteSize,
+                this.playerFrames[this.playerFrame],
+                new LJS.Color(1, 1, 1, this.color.a),
+                this.aimAngle
+            );
+        } else {
+            // Sprite not loaded yet: draw the player as a green circle.
+            LJS.drawCircle(
+                this.pos,
+                this.player_size,
+                this.color
+            );
+        }
 
     if (dir.lengthSquared() > 0) {
       this.guideline.update(this.pos, dir, this.stats.guidelineDistance);
