@@ -1,5 +1,5 @@
 import { BulletEffect } from "./BulletEffect.js";
-import { BulletClass } from "./bullet.js";
+import { BulletClass } from "./Bullet.js";
 
 export class SplitOnHitEffect extends BulletEffect {
   constructor(splitAngle = 25) {

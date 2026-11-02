@@ -1,5 +1,5 @@
 import { BulletEffect } from "./BulletEffect.js";
-import { BulletClass } from "./bullet.js";
+import { BulletClass } from "./Bullet.js";
 import { Enemies, Objects } from "./Objects.js";
 import { rayRecHit } from "./Player.js";
 
