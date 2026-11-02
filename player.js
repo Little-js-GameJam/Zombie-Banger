@@ -74,333 +74,137 @@ function loadPlayerFrames() {
 // -------------------------------------------------------------------------
 
 import { Guideline } from "./guideline.js";
-import {PlayerStats} from  "./PlayerStats.js"
+import { PlayerStats } from "./PlayerStats.js";
 
-// Stores the ray segments calculated for rendering.
+// --------------------------------------------------
+// PLAYER HEALTH
+// --------------------------------------------------
+
+export let PlayerHealth = 100;
+
+// Kept so other files that still import these don't break.
+// Bounce count now comes from PlayerStats (bulletStats.bounceThreshold).
 export let Bounces = 3;
-let MaxBounces = 6;
+const MaxBounces = 6;
 
-export function IncrBounces(){
-    if(Bounces<MaxBounces){
-        Bounces++;
-    }
-}
-export function DecrBounces(){
-    if(Bounces>0){
-        Bounces--;
-    }
+export function IncrBounces() {
+  if (Bounces < MaxBounces) {
+    Bounces++;
+  }
 }
 
-// Temporary map used to calculate the next frame's ray segments.
-// We swap the two maps after calculating the path.
-let NextRayDists = new Map();
+export function DecrBounces() {
+  if (Bounces > 0) {
+    Bounces--;
+  }
+}
 
-// Custom boolean as little js doesnt register click outside canvas.
-let mouseWasPressed = false;
+// Decrease the health of the player.
+export function damagePlayer(damage) {
+  PlayerHealth = Math.max(0, PlayerHealth - damage);
+}
+
+// NOTE: kept exactly as it was on the other branch. Despite the name it ADDS
+// to the current health (and never goes below 100). game.js calls it with
+// `PlayerHealth + 30`, which therefore doubles the health. If that is not
+// intended, change the body to: PlayerHealth = Math.max(0, health);
+export function setPlayerHealth(health) {
+  PlayerHealth = Math.max(100, PlayerHealth + health);
+}
+
+// --------------------------------------------------
+// RAY / RECTANGLE INTERSECTION
+// --------------------------------------------------
 
 // Finds where a ray hits a rectangle.
-// start    = starting position of the ray
-// dir      = direction in which the ray travels
-// rect     = rectangle we are checking
-
-// Returns the hit point, surface normal and distance.
-// Returns null if the ray misses the rectangle.
+// start = ray origin, dir = ray direction, rect = { pos, size }.
+// Returns { hit, point, normal, distance } or null if the ray misses.
+// If the ray starts inside the rectangle, the exit point is returned
+// with normal = null (callers ignore hits without a normal).
 export function rayRecHit(start, dir, rect) {
+  const halfX = rect.size.x / 2;
+  const halfY = rect.size.y / 2;
 
-    
-    // A rectangle is defined by its center and its size.
-    // Divide the size by 2 to calculate the distance from the center to each edge.
-    const halfX = rect.size.x / 2;
-    const halfY = rect.size.y / 2;
+  const minX = rect.pos.x - halfX;
+  const maxX = rect.pos.x + halfX;
 
-    // Calculate the four edges of the rectangle.
-    const minX = rect.pos.x - halfX; // Left edge
-    const maxX = rect.pos.x + halfX; // Right edge
-    const minY = rect.pos.y - halfY; // Bottom edge
-    const maxY = rect.pos.y + halfY; // Top edge
+  const minY = rect.pos.y - halfY;
+  const maxY = rect.pos.y + halfY;
 
-    // The ray follows this equation:
-    // point = start + dir * t
+  let tMin = -Infinity;
+  let tMax = Infinity;
+  let normal = null;
 
-    // t tells us how far along the ray we travel.
+  const axes = [
+    [start.x, dir.x, minX, maxX, LJS.vec2(-1, 0), LJS.vec2(1, 0)],
+    [start.y, dir.y, minY, maxY, LJS.vec2(0, -1), LJS.vec2(0, 1)],
+  ];
 
-    // tMin = the latest entry into the rectangle's boundaries.
-    // tMax = the earliest exit from the rectangle's boundaries.
-    let tMin = -Infinity;
-    let tMax = Infinity;
-
-    // The normal is a vector perpendicular to the surface hit.
-    let normal = null;
-
-    // Check the X axis first, then the Y axis.
-    //
-    // Each array contains:
-    // origin     = ray starting coordinate on this axis
-    // direction  = ray direction on this axis
-    // min, max   = rectangle boundaries on this axis
-    // negNormal  = normal pointing toward the negative axis
-    // posNormal  = normal pointing toward the positive axis
-    //
-    // For X:
-    // Left face normal  = (-1, 0)
-    // Right face normal = ( 1, 0)
-    //
-    // For Y:
-    // Bottom face normal = (0, -1)
-    // Top face normal    = (0,  1)
-    for (const [
-        origin,
-        direction,
-        min,
-        max,
-        negNormal,
-        posNormal
-    ] of [
-        [
-            start.x,
-            dir.x,
-            minX,
-            maxX,
-            LJS.vec2(-1, 0),
-            LJS.vec2(1, 0)
-        ],
-        [
-            start.y,
-            dir.y,
-            minY,
-            maxY,
-            LJS.vec2(0, -1),
-            LJS.vec2(0, 1)
-        ]
-    ]) {
-
-        // If direction is approximately zero, the ray is
-        // parallel to the two edges on this axis.
-        if (Math.abs(direction) < 1e-8) {
-
-            // The ray can never enter the rectangle if its
-            // coordinate is outside this axis's boundaries.
-            if (origin < min || origin > max)
-                return null;
-
-            // The ray is inside this axis's range.
-            // This axis does not restrict the intersection,
-            // so continue checking the other axis.
-            continue;
-        }
-
-        // Calculate when the ray crosses the minimum and
-        // maximum boundaries of this axis.
-        //
-        // Formula:
-        // t = (boundary - origin) / direction
-        let t1 = (min - origin) / direction;
-        let t2 = (max - origin) / direction;
-
-        // Initially assume the ray enters through the
-        // minimum boundary, whose normal is negNormal.
-        let entryNormal = negNormal;
-
-        // If t1 > t2, the ray is moving in the opposite
-        // direction across these boundaries.
-        //
-        // Swap the times so t1 is always the entry time
-        // and t2 is always the exit time for this axis.
-        //
-        // The ray then enters through the maximum boundary,
-        // so the entry normal must also change.
-        if (t1 > t2) {
-            [t1, t2] = [t2, t1];
-            entryNormal = posNormal;
-        }
-
-        // Keep the latest entry time across both axes.
-        //
-        // The ray must be inside both the X and Y ranges
-        // simultaneously to be inside the rectangle.
-        if (t1 > tMin) {
-            tMin = t1;
-
-            // Remember the normal of the face through
-            // which the ray enters the rectangle.
-            normal = entryNormal;
-        }
-
-        // Keep the earliest exit time across both axes.
-        tMax = Math.min(tMax, t2);
-
-        // If the entry happens after the exit, the X and Y
-        // intervals do not overlap. Therefore, no hit exists.
-        if (tMin > tMax)
-            return null;
+  for (const [origin, direction, min, max, negNormal, posNormal] of axes) {
+    // Ray is parallel to this axis.
+    if (Math.abs(direction) < 1e-8) {
+      if (origin < min || origin > max) return null;
+      continue;
     }
 
-    // If even the exit point is behind the ray's origin,
-    // the rectangle is entirely behind the ray.
-    if (tMax < 0)
-        return null;
+    let t1 = (min - origin) / direction;
+    let t2 = (max - origin) / direction;
 
-    // If tMin is negative, the ray started inside the
-    // rectangle. In that case, use the exit time instead.
-    //
-    // Your current implementation sets the normal to null.
-    // CalculatePath ignores hits without a normal, so these
-    // inside-rectangle intersections will not cause reflection.
-    if (tMin < 0) {
-        tMin = tMax;
-        normal = null;
+    let entryNormal = negNormal;
+
+    if (t1 > t2) {
+      [t1, t2] = [t2, t1];
+      entryNormal = posNormal;
     }
 
-    // Calculate the actual point where the ray intersects.
-    //
-    // point = start + dir * tMin
-    return {
-        hit: true,
+    if (t1 > tMin) {
+      tMin = t1;
+      normal = entryNormal;
+    }
 
-        point: LJS.vec2(
-            start.x + dir.x * tMin,
-            start.y + dir.y * tMin
-        ),
+    tMax = Math.min(tMax, t2);
 
-        // Direction perpendicular to the hit surface.
-        normal,
+    if (tMin > tMax) return null;
+  }
 
-        // Convert tMin into a geometric distance.
-        // This multiplication accounts for the length of dir.
-        distance: tMin * Math.sqrt(
-            dir.x * dir.x + dir.y * dir.y
-        )
-    };
+  if (tMax < 0) return null;
+
+  // If the ray starts inside the rectangle, use the exit point.
+  if (tMin < 0) {
+    tMin = tMax;
+    normal = null;
+  }
+
+  return {
+    hit: true,
+    point: start.add(dir.scale(tMin)),
+    normal,
+    distance: tMin * dir.length(),
+  };
 }
 
-
-// Used as the key for each ray segment in the Map.
-// Reset to zero every frame.
-let index = 0;
-
-
-// Calculates the complete ray path, including reflections.
-//
-// start       = origin used for intersection calculations
-// dir         = current ray direction
-// n_bounces   = remaining segments/hits allowed by recursion
-// maxDistance = maximum length of each ray segment
-// drawStart   = starting point used to draw this segment
-// rayMap      = Map where the resulting segments are stored
-function CalculatePath(
-    start,
-    dir,
-    n_bounces,
-    maxDistance = 2000,
-    drawStart = start,
-    rayMap = RayDists
-) {
-
-    // Base case of recursion.
-    // Stop if there are no remaining segments to calculate.
-    if (n_bounces <= 0)
-        return;
-
-    // Convert the direction to a unit vector (length = 1).
-    dir = dir.normalize();
-
-    // We have not found any hit yet.
-    let nearestHit = null;
-
-    // Infinity ensures that the first valid hit is closer.
-    let nearestDistance = Infinity;
-
-    // Check every rectangle in the game.
-    for (const object of Objects) {
-        const rect = object.type !== "_Enemy" ? object : object.EnemyHitBox;
-        // Find where this ray intersects the current rectangle.
-        const hit = rayRecHit(start, dir, rect );
-
-        // Ignore the rectangle if:
-        // 1. The ray missed it.
-        // 2. It has no valid surface normal.
-        if (!hit || !hit.normal)
-            continue;
-
-        // Calculate the distance between the ray origin
-        // and this rectangle's hit point.
-        const distance = hit.point.subtract(start).length();
-
-        // Only accept a hit that:
-        // 1. Is not extremely close to the origin.
-        // 2. Is closer than the nearest hit found so far.
-        //
-        // This ensures that we reflect from the first
-        // obstacle the ray encounters, not an obstacle behind it.
-        if (distance > 1e-4 && distance < nearestDistance) {
-            nearestDistance = distance;
-            nearestHit = hit;
-        }
-    }
-
-    // If no rectangle was hit, or the nearest hit is farther
-    // away than maxDistance, draw the ray to its maximum length.
-    if (!nearestHit || nearestDistance > maxDistance) {
-
-        rayMap.set(index++, {
-            start: drawStart,
-
-            // Move from start in the direction of the ray
-            // by maxDistance units.
-            end: start.add(dir.scale(maxDistance))
-        });
-
-        // There is nothing more to reflect from.
-        return;
-    }
-
-    // A rectangle was hit within maxDistance.
-    // Store the ray segment from its drawing origin
-    // to the exact point where the ray hits the rectangle.
-    rayMap.set(index++, {
-        start: drawStart,
-        end: nearestHit.point
-    });
-
-    // Calculate the reflected direction using:
-    //
-    // reflected = dir - 2 * dot(dir, normal) * normal
-    //
-    // dir.dot(normal) measures the direction's component
-    // along the surface normal.
-    //
-    // Reversing this component makes the ray bounce.
-    // normalize() ensures the result is a unit direction.
-    const reflected = dir.subtract(
-        nearestHit.normal.scale(
-            2 * dir.dot(nearestHit.normal)
-        )
-    ).normalize();
-
-    // The next ray starts at the point where the current
-    // ray hit the rectangle.
-    const nextStart = nearestHit.point;
-
-    // Calculate the next segment recursively:
-    // - Start from the hit point.
-    // - Travel in the reflected direction.
-    // - Decrease the remaining bounce count by one.
-    // - Keep storing segments in the same Map.
-    CalculatePath(
-        nextStart,
-        reflected,
-        n_bounces - 1,
-        maxDistance,
-        nearestHit.point,
-        rayMap
-    );
-}
-
-
-
+// --------------------------------------------------
+// PLAYER
+// --------------------------------------------------
 
 // The player object inherits functionality from LittleJS.
 export class PlayerClass extends LJS.EngineObject {
+  // Own copy so changing alpha doesn't affect the shared LJS.GREEN.
+  color = LJS.GREEN.copy();
+
+  // Current mouse position in world coordinates.
+  mousePosLoc = LJS.vec2(0, 0);
+
+  // Radius used to draw the player.
+  player_size = 0;
+
+  angle_of_trajectory = 0;
+
+  playerStartPos = LJS.vec2(0);
+
+  bullets = [];
+
+  startMoving = false;
 
     color = LJS.GREEN.copy();
     // Current mouse position in world coordinates.
@@ -538,15 +342,20 @@ export class PlayerClass extends LJS.EngineObject {
 
         
     }
+  }
 
-    
+  update() {
+    if (IsGameEnded) return;
 
-    render() {
+    // Update mouse position.
+    this.mousePosLoc = LJS.mousePos;
 
-        if(IsGameEnded) return;
-        
-        this.guideline.render();
-        
+    // Count the firing cooldown down. Without this the cooldown never
+    // finishes, so fire-rate upgrades would have no effect.
+    this.fireCooldownRemaining = Math.max(
+      0,
+      this.fireCooldownRemaining - LJS.timeDelta,
+    );
 
         if (this.playerFrames.length) {
             // Draw the player sprite, rotated toward the mouse.
@@ -572,12 +381,34 @@ export class PlayerClass extends LJS.EngineObject {
             );
         }
 
-        // Draw the mouse position as a small red circle.
-        LJS.drawCircle(
-            this.mousePosLoc,
-            0.8,
-            LJS.BLACK
-        );
-
+    if (dir.lengthSquared() > 0) {
+      this.guideline.update(this.pos, dir, this.stats.guidelineDistance);
     }
+
+    // Fire once per click, respecting the cooldown and the upgrade menu.
+    if (
+      !this.inputLocked &&
+      LJS.mouseWasPressed(0) &&
+      this.fireCooldownRemaining <= 0
+    ) {
+      this.fireBullet();
+      this.fireCooldownRemaining = this.stats.fireCooldown;
+    }
+  }
+
+  render() {
+    if (IsGameEnded) return;
+
+    // Fade the player as health drops (and recover when healed).
+    this.color.a = Math.min(1, Math.max(0.2, PlayerHealth / 100));
+
+    this.guideline.render();
+
+    // Draw the player as a circle.
+    // Replace this with an actual player sprite later.
+    LJS.drawCircle(this.pos, this.player_size, this.color);
+
+    // Draw the mouse position as a small circle.
+    LJS.drawCircle(this.mousePosLoc, 0.8, LJS.BLACK);
+  }
 }

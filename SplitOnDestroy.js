@@ -1,7 +1,7 @@
 import { BulletEffect } from "./BulletEffect.js";
 import { BulletClass } from "./bullet.js";
 import { Enemies, Objects } from "./Objects.js";
-import { rayRecHit } from "./player.js";
+import { rayRecHit } from "./Player.js";
 
 export class SplitOnDestroyEffect extends BulletEffect {
   constructor(splitAngle = 25) {

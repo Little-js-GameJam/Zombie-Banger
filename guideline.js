@@ -1,7 +1,7 @@
 import * as LJS from "littlejsengine";
 
 import { Objects } from "./Objects.js";
-import { rayRecHit } from "./player.js";
+import { rayRecHit } from "./Player.js";
 
 // Look and feel. Tweak these to taste.
 const GUIDELINE_WIDTH = 0.2; // line thickness in world units
@@ -22,7 +22,7 @@ function alphaAt(distance, totalDistance) {
 export class Guideline {
   // Each segment: { start, end, startDist, length }
   segments = [];
-  
+
   totalDistance = 0;
 
   // Rebuild the path. Call once per frame.
