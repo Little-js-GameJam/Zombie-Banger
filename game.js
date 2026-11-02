@@ -1,5 +1,5 @@
 import * as LJS from 'littlejsengine';
-import { PlayerClass,PlayerHealth,IncrBounces,DecrBounces,setPlayerHealth} from './player.js';
+import { PlayerClass} from './player.js';
 import { LevelDesigner,ResetWaveVals } from './LevelDesigner.js';
 import { COLOR_TEXT, hexToColor,COLOR_BG,COLOR_ORANGE,COLOR_SLATE} from './primitives.js';
 import { Objects,Enemies} from './Objects.js';
@@ -39,7 +39,7 @@ function getUIScale() {
 
 export async function startGame() {
     LJS.engineObjectsDestroy();
-
+    const uiSystem = new LJS.UISystemPlugin();
     ResetWaveCount();
     ResetWaveVals();
     SetGameInitialized(false);
@@ -56,19 +56,17 @@ export async function startGame() {
     Enemies.clear();
 
 
-    setPlayerHealth(100);
     IsGameEnded = false;
-
-    levelDesigner = new LevelDesigner({minX,maxX,minY,maxY});
-    await levelDesigner.ready;
     player = new  PlayerClass(LJS.vec2(0,0),2);
+    levelDesigner = new LevelDesigner({minX,maxX,minY,maxY,player});
+    await levelDesigner.ready;
+    
     GameInitialized= true;
 }
 
 //Currently give player some health after each wave
 export function IncrWaveCount(){
     WAVE_COUNT++;
-    setPlayerHealth(PlayerHealth + 30);
 }
 
 export function ResetWaveCount(){
@@ -241,13 +239,14 @@ function isButtonClicked(pos, size) {
 function gameUpdate() {
     mousePressed = false;
     if(LJS.mouseWasPressed(0)) mousePressed = true;
+    
     //Let player choose the number of Bounces
-    if(LJS.keyWasPressed('NumpadAdd') ){
-        IncrBounces();
-    }
-    else if(LJS.keyWasPressed('NumpadSubtract')){
-       DecrBounces();
-    }
+    // if(LJS.keyWasPressed('NumpadAdd') ){
+    //     IncrBounces();
+    // }
+    // else if(LJS.keyWasPressed('NumpadSubtract')){
+    //    DecrBounces();
+    // }
     
    
 }
@@ -255,9 +254,11 @@ function gameUpdate() {
 
 
 function gameUpdatePost() {
-    if(PlayerHealth <=0 && !IsGameEnded){
-        IsGameEnded = true;
-    }
+    // if(PlayerHealth <=0 && !IsGameEnded){
+    //     IsGameEnded = true;
+    // }
+
+    //Change this to check if number of bullets run out
 }
 function gameRender() {}
 
@@ -453,12 +454,6 @@ function gameRenderPost() {
         return;        
     }
     
-    
-    LJS.drawTextScreen(
-        `Health: ${PlayerHealth}`,
-        LJS.vec2(LJS.mainCanvasSize.x - 150, 100), // Change this to upper right corner
-        24
-    );
 
 }
 
