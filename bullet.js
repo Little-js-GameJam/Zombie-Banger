@@ -19,7 +19,7 @@ export class BulletClass extends LJS.EngineObject {
     // CHANGED: was 400. The level is now in tile units (map is 25 x 15 units),
     // so 400 units/s crossed the whole map in ~4 frames and used up all
     // bounces almost instantly. 30 units/s is about 1 second per crossing.
-    bulletVelocity = 30; // Units (tiles) per second
+    bulletVelocity = 50; // Units (tiles) per second
 
     lifeTimeOver = false;
 
