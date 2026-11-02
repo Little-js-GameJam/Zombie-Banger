@@ -15,22 +15,18 @@ export let IsGameEnded = false;
 export let IsGameStarted = false;
 export let GameInitialized = false;
 
-
 // music shit !
-const bgMusic = new Audio('/assets/sounds/bgmusic.mp3');
+const bgMusic = new Audio("/assets/sounds/bgmusic.mp3");
 bgMusic.loop = true;
 bgMusic.volume = 0.5;
 
 // Every second, if the music isn't playing, start it again
 setInterval(() => {
-    if (bgMusic.paused) bgMusic.play().catch(() => {});
+  if (bgMusic.paused) bgMusic.play().catch(() => {});
 }, 1000);
 
-
-
-
-export function setGameEnd(){
-    IsGameEnded = true;
+export function setGameEnd() {
+  IsGameEnded = true;
 }
 
 let isGameRuleOpened = false;
@@ -434,6 +430,8 @@ document.fonts.ready.then(() => {
       "/assets/Logo.png",
       "/assets/for_menu/button_template_shadow.png",
       "/assets/bullet.png",
+      "/assets/playerSprite/playerSprite.png",
+      "/assets/sprites/spritesheet.png",
     ],
   );
 });

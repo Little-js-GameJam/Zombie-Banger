@@ -4,6 +4,7 @@ import { BulletClass } from "./Bullet.js";
 import { IsGameEnded } from "./game.js";
 import { Guideline } from "./guideline.js";
 import { PlayerStats } from "./PlayerStats.js";
+import { Sprites } from "./Sprites.js";
 
 // --------------------------------------------------
 // PLAYER SPRITE SETTINGS
@@ -341,7 +342,7 @@ export class PlayerClass extends LJS.EngineObject {
       LJS.drawTile(
         this.pos,
         spriteSize,
-        this.playerFrames[this.playerFrame],
+        Sprites.player.idle[this.playerFrame],
         new LJS.Color(1, 1, 1, this.color.a),
         this.aimAngle,
       );
