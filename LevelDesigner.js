@@ -2,7 +2,7 @@ import * as LJS from 'littlejsengine';
 import { Objects,Enemies,addObject,EneminesEliminated } from './Objects.js';
 import { IncrWaveCount,WAVE_COUNT,setGameEnd} from './game.js';
 import { Enemy } from './Enemy.js';
-
+import { UpgradeMenu } from "./UpgradeMenu.js";
 const MAP_URL = '/assets/level/level1/zbLevel1.tmj';
 const TILESET_URL = '/assets/level/jawbreaker_tiles.png';
 
@@ -60,8 +60,26 @@ class Wall extends LJS.EngineObject {
 
 export class LevelDesigner extends LJS.EngineObject {
 
-    constructor({ minX, maxX, minY, maxY, fitCamera = true } = {}) {
+    constructor({ minX, maxX, minY, maxY, player, fitCamera = true } = {}) {
         super();
+        this.player = player;
+
+        this.upgradeMenu = null;
+        this.waitingForUpgrade = false;
+
+        this.upgradeMenu = new UpgradeMenu(
+            player,
+            () => {
+            // Called after the player picks an upgrade.
+            this.waitingForUpgrade = false;
+
+            // Start the next wave.
+            IS_NEXT_WAVE_LOADED = false;
+
+            IncrWaveCount();
+            this.loadWaves();
+            }
+        );
 
         this.mapWidth = 0;
         this.mapHeight = 0;
@@ -356,24 +374,40 @@ export class LevelDesigner extends LJS.EngineObject {
         IS_NEXT_WAVE_LOADED = true;
     }
 
-    update(){
+    openUpgradeMenu(count = 3) {
         
-        if(IS_FIRST_WAVE_LOADED && Enemies.size == 0){
-           IS_NEXT_WAVE_LOADED = false;
-        }
-        if(!IS_NEXT_WAVE_LOADED && IS_FIRST_WAVE_LOADED){
-            IncrWaveCount();
-            
-            this.loadWaves();
-        }
+        if (this.waitingForUpgrade) return;
 
+        this.waitingForUpgrade = true;
+        
+        this.upgradeMenu.open(count);
+    }
+
+    update() {
+
+        // Remove eliminated enemies.
         for (const id of EneminesEliminated.keys()) {
             Enemies.delete(id);
         }
 
         EneminesEliminated.clear();
 
+        // Check whether the first wave has been loaded.
+        if (!IS_FIRST_WAVE_LOADED) return;
 
+
+        // Don't proceed while the upgrade selection is active.
+        if (this.waitingForUpgrade) return;
+
+
+        // Check whether the current wave is complete.
+        if (Enemies.size === 0 && IS_NEXT_WAVE_LOADED) {
+
+            // Display three random upgrades.
+            this.openUpgradeMenu(3);
+
+            return;
+        }
     }
     render() {}
 }

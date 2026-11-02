@@ -1,5 +1,5 @@
 import * as LJS from 'littlejsengine';
-import { PlayerClass,PlayerHealth,IncrBounces,DecrBounces,setPlayerHealth} from './player.js';
+import { PlayerClass} from './player.js';
 import { LevelDesigner,ResetWaveVals } from './LevelDesigner.js';
 import { COLOR_TEXT, hexToColor,COLOR_BG,COLOR_ORANGE,COLOR_SLATE} from './primitives.js';
 import { Objects,Enemies} from './Objects.js';
@@ -52,7 +52,7 @@ function getUIScale() {
 
 export async function startGame() {
     LJS.engineObjectsDestroy();
-
+    const uiSystem = new LJS.UISystemPlugin();
     ResetWaveCount();
     ResetWaveVals();
     SetGameInitialized(false);
@@ -69,19 +69,17 @@ export async function startGame() {
     Enemies.clear();
 
 
-    setPlayerHealth(100);
     IsGameEnded = false;
-
-    levelDesigner = new LevelDesigner({minX,maxX,minY,maxY});
-    await levelDesigner.ready;
     player = new  PlayerClass(LJS.vec2(0,0),2);
+    levelDesigner = new LevelDesigner({minX,maxX,minY,maxY,player});
+    await levelDesigner.ready;
+    
     GameInitialized= true;
 }
 
 //Currently give player some health after each wave
 export function IncrWaveCount(){
     WAVE_COUNT++;
-    setPlayerHealth(PlayerHealth + 30);
 }
 
 export function ResetWaveCount(){
@@ -154,6 +152,20 @@ function DisplayGameRules(){
         GameRuleDisplayPos.x + (GameRuleDisplaySize.x / 2) - (100 * scale) ,
         GameRuleDisplayPos.y + (GameRuleDisplaySize.y / 2) - (100 * scale)
     );
+
+    
+    LJS.drawTile(
+        BackButtonDisplayPos,
+        BackButtonDisplaySize.scale(1.25),
+        buttonShadowImage,
+        LJS.WHITE,  
+        0,          
+        false,      
+        undefined,  
+        false,      
+        true        
+    );
+
     LJS.drawTile(
         BackButtonDisplayPos,
         BackButtonDisplaySize,
@@ -180,6 +192,8 @@ let backgroundImage;
 let buttonImage;
 let backButtonImage;
 let menuImage;
+let logoImage;
+let buttonShadowImage;
 
 function loadMenuImages() {
 
@@ -187,9 +201,10 @@ function loadMenuImages() {
     buttonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 120), 1); 
     backButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(120, 120), 2); 
     menuImage  = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 400), 3); 
-    // startButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  2); 
-    // rulesButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  3); 
-    // restartButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  4); 
+    logoImage  = LJS.tile(LJS.vec2(0, 0), LJS.vec2(1024,1024), 4); 
+    buttonShadowImage  = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200,120), 5); 
+
+        console.log("IMAGES LOADED");
 }
 
 async function loadMenuSprites (){
@@ -201,10 +216,10 @@ async function loadMenuSprites (){
 
         await LJS.spritesReady();
     }catch (error) {
-         console.error('Error loading Texture:', error);
+         console.error('Error loading Sprite:', error);
     }
 
-    console.log("TEXTURE LOADED");
+    console.log("SPRITE LOADED");
 }
 
 
@@ -237,13 +252,14 @@ function isButtonClicked(pos, size) {
 function gameUpdate() {
     mousePressed = false;
     if(LJS.mouseWasPressed(0)) mousePressed = true;
+    
     //Let player choose the number of Bounces
-    if(LJS.keyWasPressed('NumpadAdd') ){
-        IncrBounces();
-    }
-    else if(LJS.keyWasPressed('NumpadSubtract')){
-       DecrBounces();
-    }
+    // if(LJS.keyWasPressed('NumpadAdd') ){
+    //     IncrBounces();
+    // }
+    // else if(LJS.keyWasPressed('NumpadSubtract')){
+    //    DecrBounces();
+    // }
     
    
 }
@@ -251,9 +267,11 @@ function gameUpdate() {
 
 
 function gameUpdatePost() {
-    if(PlayerHealth <=0 && !IsGameEnded){
-        IsGameEnded = true;
-    }
+    // if(PlayerHealth <=0 && !IsGameEnded){
+    //     IsGameEnded = true;
+    // }
+
+    //Change this to check if number of bullets run out
 }
 function gameRender() {}
 
@@ -267,6 +285,24 @@ function gameRenderPost() {
             LJS.vec2(0,0),       
             screen.scale(0.035),
             backgroundImage
+        );
+
+        const LogoSize= LJS.vec2(256,256).scale(scale);
+        const LogoPos = LJS.vec2(
+            screen.x * 0.5,
+            screen.y*0.1           
+        );
+
+        LJS.drawTile(
+            LogoPos,
+            LogoSize,
+            logoImage,
+            LJS.WHITE,
+            0,
+            false,
+            undefined,
+            false,
+            true
         );
 
 
@@ -287,10 +323,22 @@ function gameRenderPost() {
 
 
 
-        const StartbuttonSize = LJS.vec2(200, 120).scale(scale);
+        const StartbuttonSize = LJS.vec2(200 , 120).scale(scale);
         const StartbuttonPos = LJS.vec2(
             screen.x * 0.5,
             screen.y * 0.4           
+        );
+
+        LJS.drawTile(
+            StartbuttonPos,
+            StartbuttonSize.scale(1.15),
+            buttonShadowImage,
+            LJS.WHITE,  
+            0,          
+            false,      
+            undefined,  
+            false,      
+            true        
         );
 
         LJS.drawTile(
@@ -305,6 +353,7 @@ function gameRenderPost() {
             true        
         );
 
+    
         LJS.drawTextScreen(
             "START",
             StartbuttonPos,
@@ -324,6 +373,18 @@ function gameRenderPost() {
         const GameRulebuttonPos = LJS.vec2(
             screen.x * 0.5,
             screen.y * 0.6           
+        );
+
+        LJS.drawTile(
+            GameRulebuttonPos,
+            GameRulebuttonSize.scale(1.15),
+            buttonShadowImage,
+            LJS.WHITE,  
+            0,          
+            false,      
+            undefined,  
+            false,      
+            true        
         );
 
         LJS.drawTile(
@@ -374,8 +435,9 @@ function gameRenderPost() {
             gameEndtexture,
         );
 
-        const restartButtonSize = LJS.vec2(128, 128).scale(scale);
-        const restartButtonPos = screen.scale(0.5).add(LJS.vec2(0,400));
+        const restartButtonSize = LJS.vec2(200, 120).scale(scale);
+        const restartButtonPos = screen.scale(0.5).add(LJS.vec2(0, 250).scale(scale));
+
 
         LJS.drawTile(
             restartButtonPos,
@@ -389,18 +451,22 @@ function gameRenderPost() {
             true        
         );
         
+        LJS.drawTextScreen(
+            "RESTART",
+            restartButtonPos,
+            32,
+            COLOR_TEXT,
+            5,
+            COLOR_ORANGE,
+            'center'
+        )
+
         if(isButtonClicked(restartButtonPos,restartButtonSize)){
            startGame();
         }
         return;        
     }
     
-    
-    LJS.drawTextScreen(
-        `Health: ${PlayerHealth}`,
-        LJS.vec2(LJS.mainCanvasSize.x - 150, 100), // Change this to upper right corner
-        24
-    );
 
 }
 
@@ -417,7 +483,8 @@ LJS.engineInit(
         '/assets/for_menu/button_template.png', 
         '/assets/for_menu/back_button.png', 
         '/assets/for_menu/main_menu.png', 
-   
+        '/assets/Logo.png',
+        '/assets/for_menu/button_template_shadow.png', 
     ]
 )
 });
