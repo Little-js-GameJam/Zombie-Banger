@@ -2,7 +2,7 @@
 import * as LJS from 'littlejsengine';
 import { Objects } from './Objects.js';
 import { BulletClass } from './bullet.js';
-import { GameInitialized,IsGameEnded, IsGameStarted,SetGameInitialized } from './game.js';
+import { IsGameEnded} from './game.js';
 
 
 // Stores the ray segments calculated for rendering.
