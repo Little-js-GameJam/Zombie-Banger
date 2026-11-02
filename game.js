@@ -141,6 +141,20 @@ function DisplayGameRules(){
         GameRuleDisplayPos.x + (GameRuleDisplaySize.x / 2) - (100 * scale) ,
         GameRuleDisplayPos.y + (GameRuleDisplaySize.y / 2) - (100 * scale)
     );
+
+    
+    LJS.drawTile(
+        BackButtonDisplayPos,
+        BackButtonDisplaySize.scale(1.25),
+        buttonShadowImage,
+        LJS.WHITE,  
+        0,          
+        false,      
+        undefined,  
+        false,      
+        true        
+    );
+
     LJS.drawTile(
         BackButtonDisplayPos,
         BackButtonDisplaySize,
@@ -167,6 +181,8 @@ let backgroundImage;
 let buttonImage;
 let backButtonImage;
 let menuImage;
+let logoImage;
+let buttonShadowImage;
 
 function loadMenuImages() {
 
@@ -174,9 +190,10 @@ function loadMenuImages() {
     buttonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 120), 1); 
     backButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(120, 120), 2); 
     menuImage  = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 400), 3); 
-    // startButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  2); 
-    // rulesButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  3); 
-    // restartButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  4); 
+    logoImage  = LJS.tile(LJS.vec2(0, 0), LJS.vec2(1024,1024), 4); 
+    buttonShadowImage  = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200,120), 5); 
+
+        console.log("IMAGES LOADED");
 }
 
 async function loadMenuSprites (){
@@ -188,10 +205,10 @@ async function loadMenuSprites (){
 
         await LJS.spritesReady();
     }catch (error) {
-         console.error('Error loading Texture:', error);
+         console.error('Error loading Sprite:', error);
     }
 
-    console.log("TEXTURE LOADED");
+    console.log("SPRITE LOADED");
 }
 
 
@@ -256,6 +273,24 @@ function gameRenderPost() {
             backgroundImage
         );
 
+        const LogoSize= LJS.vec2(256,256).scale(scale);
+        const LogoPos = LJS.vec2(
+            screen.x * 0.5,
+            screen.y*0.1           
+        );
+
+        LJS.drawTile(
+            LogoPos,
+            LogoSize,
+            logoImage,
+            LJS.WHITE,
+            0,
+            false,
+            undefined,
+            false,
+            true
+        );
+
 
         const MenubackgroundSize= LJS.vec2(300, 400).scale(scale);
         const MenubackgroundPos = screen.scale(0.5)
@@ -274,10 +309,22 @@ function gameRenderPost() {
 
 
 
-        const StartbuttonSize = LJS.vec2(200, 120).scale(scale);
+        const StartbuttonSize = LJS.vec2(200 , 120).scale(scale);
         const StartbuttonPos = LJS.vec2(
             screen.x * 0.5,
             screen.y * 0.4           
+        );
+
+        LJS.drawTile(
+            StartbuttonPos,
+            StartbuttonSize.scale(1.15),
+            buttonShadowImage,
+            LJS.WHITE,  
+            0,          
+            false,      
+            undefined,  
+            false,      
+            true        
         );
 
         LJS.drawTile(
@@ -292,6 +339,7 @@ function gameRenderPost() {
             true        
         );
 
+    
         LJS.drawTextScreen(
             "START",
             StartbuttonPos,
@@ -311,6 +359,18 @@ function gameRenderPost() {
         const GameRulebuttonPos = LJS.vec2(
             screen.x * 0.5,
             screen.y * 0.6           
+        );
+
+        LJS.drawTile(
+            GameRulebuttonPos,
+            GameRulebuttonSize.scale(1.15),
+            buttonShadowImage,
+            LJS.WHITE,  
+            0,          
+            false,      
+            undefined,  
+            false,      
+            true        
         );
 
         LJS.drawTile(
@@ -361,8 +421,9 @@ function gameRenderPost() {
             gameEndtexture,
         );
 
-        const restartButtonSize = LJS.vec2(128, 128).scale(scale);
-        const restartButtonPos = screen.scale(0.5).add(LJS.vec2(0,400));
+        const restartButtonSize = LJS.vec2(200, 120).scale(scale);
+        const restartButtonPos = screen.scale(0.5).add(LJS.vec2(0, 250).scale(scale));
+
 
         LJS.drawTile(
             restartButtonPos,
@@ -376,6 +437,16 @@ function gameRenderPost() {
             true        
         );
         
+        LJS.drawTextScreen(
+            "RESTART",
+            restartButtonPos,
+            32,
+            COLOR_TEXT,
+            5,
+            COLOR_ORANGE,
+            'center'
+        )
+
         if(isButtonClicked(restartButtonPos,restartButtonSize)){
            startGame();
         }
@@ -404,7 +475,8 @@ LJS.engineInit(
         '/assets/for_menu/button_template.png', 
         '/assets/for_menu/back_button.png', 
         '/assets/for_menu/main_menu.png', 
-   
+        '/assets/Logo.png',
+        '/assets/for_menu/button_template_shadow.png', 
     ]
 )
 });
