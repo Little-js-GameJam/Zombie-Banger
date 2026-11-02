@@ -36,7 +36,7 @@ export class BulletClass extends LJS.EngineObject {
   hitEnemies = new Set();
 
   constructor(startPos, targetPos, player = null) {
-    super(startPos);
+    super(startPos, LJS.vec2(0.6, 0.6));
 
     // Calculate the direction from the start to the target.
     this.direction = targetPos.subtract(startPos).normalize();

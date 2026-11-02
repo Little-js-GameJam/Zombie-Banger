@@ -4,6 +4,6 @@ export let Sprites = {};
 
 export function initSprites() {
   Sprites = {
-    bullet: LJS.tile(6, 16, 0),
+    bullet: LJS.tile(0, 16, 6),
   };
 }
