@@ -8,15 +8,24 @@ import {
   COLOR_ORANGE,
   COLOR_SLATE,
 } from "./primitives.js";
-import { Objects, Enemies } from "./Objects.js";
+import { Objects, Enemies, EneminesEliminated } from "./Objects.js";
 import { initSprites } from "./Sprites.js";
 export let WAVE_COUNT = 1;
 export let IsGameEnded = false;
 export let IsGameStarted = false;
 export let GameInitialized = false;
 
-let totalZombiesKilledCurrent = 0; 
-let totalZombiesKilled = 0; 
+let totalZombiesKilledCurrent = 0;
+let highestZombiesKilled = 0;
+
+export function zombieCountIncrease() {
+  totalZombiesKilledCurrent++;
+  highestZombiesKilled = Math.max(highestZombiesKilled, totalZombiesKilledCurrent);
+}
+
+// in startGame(), with the other resets:
+totalZombiesKilledCurrent = 0;
+EneminesEliminated.clear();   // import it from Objects.js
 
 // music shit !
 const bgMusic = new Audio("/assets/sounds/bgmusic.mp3");
@@ -100,11 +109,10 @@ function DisplayGameRules() {
   const ruleGroups = [
     ["Hello there fellow survivor!!"],
     ["To survive further, follow these rules:"],
-    ["1. Don't Die!!!"],
-    ["2. Each bullet bounce costs 5 HP.", "   Minimize bounces (Limit: 1-6)."],
-    ["3. Eliminate enemies to earn health."],
-    ["4. Survive up to 5 waves.", "   Each wave doubles the zombies!"],
-    ["5. Get power-ups after each wave."],
+    ["1. Don't let Bullets run out!!!"],
+    ["2. Eliminate enemies to earn Bullets."],
+    ["3. Survive up to 5 waves.", "   Each wave doubles the zombies!"],
+    ["4. Get power-ups after each wave."],
   ];
 
   LJS.drawTile(
@@ -408,10 +416,10 @@ function gameRenderPost() {
       leaderBoardImage,LJS.WHITE,0,false,undefined,false,true
     );
 
-    const lines = [
-      [`Highest Number of zombies killed: ${Math.max(totalZombiesKilledCurrent,totalZombiesKilled)}`],
-      [`Number of Bullets fired: ${player.stats.totalFiredBullets}`]
-    ]
+      const lines = [
+        [`Highest Number of zombies killed: ${highestZombiesKilled}`],
+        [`Number of Bullets fired: ${player.stats.totalFiredBullets}`]
+      ]
 
     const startY = GameEndPopUpPos.y - GameEndPopUpSize.y / 2 + 50 * scale;
     const fontSize = Math.max(14, Math.floor(18 * scale));

@@ -3,6 +3,7 @@ import * as LJS from "littlejsengine";
 import { Enemies, Objects, EneminesEliminated } from "./Objects.js";
 import { rayRecHit } from "./player.js";
 import { Sprites } from "./Sprites.js";
+import {zombieCountIncrease} from './game.js'
 
 // Set to true to log fired bullets, bounces and enemy hits in the console.
 const DEBUG_BULLETS = true;
@@ -21,7 +22,7 @@ export class BulletClass extends LJS.EngineObject {
   // The level is in tile units, so this is tiles per second.
   // Overwritten by PlayerStats when the player fires.
   bulletVelocity = 30;
-  damage = 20;
+  damage = 500;
 
   // Special behaviors attached to this bullet.
   effects = [];
@@ -99,6 +100,9 @@ export class BulletClass extends LJS.EngineObject {
     enemy.color.a -= 0.2;
     enemy.health -= this.damage;
 
+    console.log("Zombie health:", enemy.health);
+    console.log("Bullet damage:", this.damage);
+
     if (DEBUG_BULLETS) {
       console.log(
         `hit enemy ${enemy.id}, health: ${enemy.health}, pierce left: ${this.bulletPierceThreshold}`,
@@ -107,8 +111,9 @@ export class BulletClass extends LJS.EngineObject {
 
     this.triggerEffects("onEnemyHit", enemy);
 
-    if (enemy.health <= 0) {
-      EneminesEliminated.set(enemy.id, enemy);
+    if (enemy.health <= 0 && !EneminesEliminated.has(enemy.id)) {
+        EneminesEliminated.set(enemy.id, enemy);
+        zombieCountIncrease();
     }
 
     // Piercing: use up one charge and keep flying through the enemy.
