@@ -321,7 +321,7 @@ export class LevelDesigner extends LJS.EngineObject {
     }
 
     loadWaves(){
-        if(WAVE_COUNT >1){ 
+        if(WAVE_COUNT >4){ 
             
             setGameEnd();
             return;

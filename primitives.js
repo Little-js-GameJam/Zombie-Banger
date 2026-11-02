@@ -1,5 +1,9 @@
 import * as LJS from 'littlejsengine';
 
+export const COLOR_BG     = new LJS.Color(0.137, 0.153, 0.227); // #23273A - Dark Midnight Navy
+export const COLOR_SLATE  = new LJS.Color(0.431, 0.447, 0.510); // #6E7282 - Steel / Slate Grey
+export const COLOR_ORANGE = new LJS.Color(0.933, 0.290, 0.067); // #EE4A11 - Burnt Orange Accent
+export const COLOR_TEXT   = new LJS.Color(0.886, 0.902, 0.933); // #E2E6EE - Off-white / Silver
 
 
 export class Rectangle{

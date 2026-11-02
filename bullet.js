@@ -1,6 +1,6 @@
 import * as LJS from 'littlejsengine';
 import { Enemies, Objects,EneminesEliminated } from './Objects.js';
-import { PlayerClass, rayRecHit,damagePlayer,Bounces } from './player.js'; 
+import { rayRecHit,damagePlayer,Bounces } from './player.js'; 
 
 // CHANGED: set to true to log every bounce in the browser console.
 const DEBUG_BULLETS = true;
@@ -138,7 +138,7 @@ export class BulletClass extends LJS.EngineObject {
         this.bouncesHappened++;
 
         //Decrease the health of the player on the bounce count
-        damagePlayer(20);
+        damagePlayer(5);
 
         // Move slightly away from the wall to prevent
         // immediately detecting the same collision again.

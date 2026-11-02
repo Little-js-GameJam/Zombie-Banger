@@ -1,9 +1,9 @@
-
 import * as LJS from 'littlejsengine';
 import { PlayerClass,PlayerHealth,IncrBounces,DecrBounces,setPlayerHealth} from './player.js';
 import { LevelDesigner,ResetWaveVals } from './LevelDesigner.js';
-import { hexToColor } from './primitives.js';
+import { COLOR_TEXT, hexToColor,COLOR_BG,COLOR_ORANGE,COLOR_SLATE} from './primitives.js';
 import { Objects,Enemies} from './Objects.js';
+
 
 export let WAVE_COUNT = 1;
 export let IsGameEnded = false;  
@@ -83,27 +83,79 @@ function DisplayGameRules(){
 
     const GameRuleDisplaySize= LJS.vec2(400, 600).scale(scale);
     const GameRuleDisplayPos = screen.scale(0.5);
-    //Placeholder for now change this with actual rules
-    const rules = [
-        "1. Survive as long as possible.",
-        "2. Avoid contact with zombies.",
-        "3. Eliminate enemies to earn points.",
-        "4. Don't let your health reach zero.",
-        "5. Try to achieve the highest score."
+    const ruleGroups = [
+        ["Hello there fellow survivor!!"],
+        ["To survive further, follow these rules:"],
+        ["1. Don't Die!!!"],
+        [
+            "2. Each bullet bounce costs 5 HP.",
+            "   Minimize bounces (Limit: 1-6)."
+        ],
+        ["3. Eliminate enemies to earn health."],
+        [
+            "4. Survive up to 5 waves.",
+            "   Each wave doubles the zombies!"
+        ],
+        ["5. Get power-ups after each wave."]
     ];
 
-    LJS.drawRect(GameRuleDisplayPos,GameRuleDisplaySize,LJS.BLACK,0,false,true);
-    rules.forEach((rule, i) => {
+    LJS.drawTile(
+        GameRuleDisplayPos,
+        GameRuleDisplaySize,
+        menuImage,
+        LJS.WHITE,
+        0,
+        false,
+        undefined,
+        false,
+        true
+    );
 
-        LJS.drawText(
-            rule,
-            LJS.vec2(0, 15 - i * 6 - 3),
-            1,
-            LJS.WHITE,
-            0,
-            LJS.BLACK
-        );
+    const startY = GameRuleDisplayPos.y - (GameRuleDisplaySize.y / 2) + (50 * scale);
+    const fontSize = Math.max(14, Math.floor(18 * scale)); 
+    const lineHeight = 28 * scale; 
+    const groupGap = 12 * scale;    
+
+    let currentY = startY;
+
+    // 7. Render each group dynamically
+    ruleGroups.forEach((group) => {
+        group.forEach((line) => {
+            LJS.drawTextScreen(
+                line,
+                LJS.vec2(GameRuleDisplayPos.x, currentY),
+                fontSize,
+                COLOR_TEXT,
+                1,
+                COLOR_SLATE,
+                'center'
+            );
+            currentY += lineHeight;
+        });
+        currentY += groupGap; // Add a bit of space after each full rule group
     });
+
+
+    const BackButtonDisplaySize= LJS.vec2(60, 60).scale(scale);
+    const BackButtonDisplayPos = LJS.vec2(
+        GameRuleDisplayPos.x + (GameRuleDisplaySize.x / 2) - (100 * scale) ,
+        GameRuleDisplayPos.y + (GameRuleDisplaySize.y / 2) - (100 * scale)
+    );
+    LJS.drawTile(
+        BackButtonDisplayPos,
+        BackButtonDisplaySize,
+        backButtonImage,
+        LJS.WHITE,
+        0,
+        false,
+        undefined,
+        false,
+        true
+    );
+    // LJS.drawRect(BackButtonDisplayPos,BackButtonDisplaySize,LJS.WHITE,0,false,true);
+    if(isButtonClicked(BackButtonDisplayPos,BackButtonDisplaySize)){
+        isGameRuleOpened = false;
+    }
 
 }
 
@@ -112,19 +164,19 @@ function DisplayGameRules(){
 let gameEndtexture;
 
 let backgroundImage;
+let buttonImage;
+let backButtonImage;
 let menuImage;
-let startButtonImage;
-let rulesButtonImage;
-
-let restartButtonImage;
 
 function loadMenuImages() {
 
     backgroundImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(1099, 661), 0); 
-    menuImage  = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256), 1); 
-    startButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  2); 
-    rulesButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  3); 
-    restartButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  4); 
+    buttonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 120), 1); 
+    backButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(120, 120), 2); 
+    menuImage  = LJS.tile(LJS.vec2(0, 0), LJS.vec2(200, 400), 3); 
+    // startButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  2); 
+    // rulesButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  3); 
+    // restartButtonImage = LJS.tile(LJS.vec2(0, 0), LJS.vec2(256, 256),  4); 
 }
 
 async function loadMenuSprites (){
@@ -194,6 +246,7 @@ function gameRender() {}
 
 
 function gameRenderPost() {
+
     const scale = getUIScale();
     const screen = LJS.mainCanvasSize;
     if(!IsGameStarted){
@@ -204,16 +257,24 @@ function gameRenderPost() {
         );
 
 
-        const MenubackgroundSize= LJS.vec2(16, 16).scale(scale);
-        const MenubackgroundPos = LJS.vec2(0,0);
+        const MenubackgroundSize= LJS.vec2(300, 400).scale(scale);
+        const MenubackgroundPos = screen.scale(0.5)
         LJS.drawTile(
             MenubackgroundPos,       
             MenubackgroundSize,
-            menuImage
+            menuImage,
+            LJS.WHITE,  
+            0,          
+            false,      
+            undefined,  
+            false,      
+            true 
         );
 
 
-        const StartbuttonSize = LJS.vec2(256, 256).scale(scale);
+
+
+        const StartbuttonSize = LJS.vec2(200, 120).scale(scale);
         const StartbuttonPos = LJS.vec2(
             screen.x * 0.5,
             screen.y * 0.4           
@@ -222,7 +283,7 @@ function gameRenderPost() {
         LJS.drawTile(
             StartbuttonPos,
             StartbuttonSize,
-            startButtonImage,
+            buttonImage,
             LJS.WHITE,  
             0,          
             false,      
@@ -231,12 +292,22 @@ function gameRenderPost() {
             true        
         );
 
-        if(isButtonClicked(StartbuttonPos,StartbuttonSize) ){
+        LJS.drawTextScreen(
+            "START",
+            StartbuttonPos,
+            48,
+            COLOR_TEXT,
+            5,
+            COLOR_ORANGE,
+            'center'
+        )
+
+        if(isButtonClicked(StartbuttonPos,StartbuttonSize) && !isGameRuleOpened){
             IsGameStarted = true;
             gameInit();
         }
 
-        const GameRulebuttonSize = LJS.vec2(256, 256).scale(scale);
+        const GameRulebuttonSize = LJS.vec2(200, 120).scale(scale);
         const GameRulebuttonPos = LJS.vec2(
             screen.x * 0.5,
             screen.y * 0.6           
@@ -245,7 +316,7 @@ function gameRenderPost() {
         LJS.drawTile(
             GameRulebuttonPos,       
             GameRulebuttonSize,   
-            rulesButtonImage,
+            buttonImage,
             LJS.WHITE,  
             0,          
             false,      
@@ -253,6 +324,16 @@ function gameRenderPost() {
             false,      
             true            
         );
+
+        LJS.drawTextScreen(
+            "GAME \n RULE",
+            GameRulebuttonPos,
+            48,
+            COLOR_TEXT,
+            5,
+            COLOR_ORANGE,
+            'center'
+        )
 
         if(isButtonClicked(GameRulebuttonPos,GameRulebuttonSize) ){
             isGameRuleOpened = true;
@@ -286,7 +367,7 @@ function gameRenderPost() {
         LJS.drawTile(
             restartButtonPos,
             restartButtonSize,
-            restartButtonImage,
+            buttonImage,
             LJS.WHITE,  
             0,          
             false,      
@@ -310,6 +391,8 @@ function gameRenderPost() {
 
 }
 
+
+document.fonts.ready.then(() => {
 LJS.engineInit(
     gameInit,
     gameUpdate,
@@ -318,9 +401,10 @@ LJS.engineInit(
     gameRenderPost,
     [   
         '/assets/lvl1_background_2.png',
-        '/assets/Pixelated_menu_background.png', 
-        '/assets/Pixelated_start_button.png',     
-        '/assets/Pixelated_rules_button.png',      
-        '/assets/Pixelated_restart_button.png'      
+        '/assets/for_menu/button_template.png', 
+        '/assets/for_menu/back_button.png', 
+        '/assets/for_menu/main_menu.png', 
+   
     ]
-);
+)
+});
