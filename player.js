@@ -3,20 +3,13 @@ import * as LJS from 'littlejsengine';
 import { Objects } from './Objects.js';
 import { BulletClass } from './bullet.js';
 import { IsGameEnded} from './game.js';
-
+import { Guideline } from "./guideline.js";
+import {PlayerStats} from  "./PlayerStats.js"
 
 // Stores the ray segments calculated for rendering.
-let RayDists = new Map();
-export let PlayerHealth =100;
 export let Bounces = 3;
 let MaxBounces = 6;
-//Decrease the health of the player 
-export function damagePlayer(damage) {
-    PlayerHealth = Math.max(0, PlayerHealth - damage);
-}
-export function setPlayerHealth(health){
-    PlayerHealth = Math.max(100,PlayerHealth + health);
-}
+
 export function IncrBounces(){
     if(Bounces<MaxBounces){
         Bounces++;
@@ -348,33 +341,57 @@ export class PlayerClass extends LJS.EngineObject {
 
     // These properties are currently not used in the ray logic.
     playerStartPos = LJS.vec2(0);
+   
     bullets = [];
+
     startMoving = false;
-    isPlayer = true;
+
+    fireCooldownRemaining = 0;
+
+    stats = new PlayerStats();
+    guideline = new Guideline();
 
     constructor(pos, p_s) {
         // Initialize the inherited EngineObject at pos.
         super(pos);
         
-        this.isPlayer = true;
         // Store the player's size.
         this.player_size = p_s;
 
         // Remember the initial player position.
         this.playerStartPos = this.pos;
-
-        PlayerHealth = 100;
-        this.previousHealth = PlayerHealth;
     } 
 
     fireBullet() {
-        const bullet = new BulletClass(
-            this.pos,
-            LJS.mousePos
-        );
-
-        this.bullets.push(bullet);
-    } 
+        const bulletStats = this.stats.bulletStats;
+    
+        const baseDirection = LJS.mousePos.subtract(this.pos).normalize();
+    
+        const count = bulletStats.fireCount;
+    
+        for (let i = 0; i < count; i++) {
+          // Center bullet spread around the mouse direction.
+          const offset = (i - (count - 1) / 2) * bulletStats.spreadAngle;
+        
+          const direction = baseDirection.rotate((offset * Math.PI) / 180);
+        
+          const targetPos = this.pos.add(direction);
+        
+          // Create the bullet.
+          const bullet = new BulletClass(this.pos, targetPos, this);
+        
+          // Copy current player bullet stats.
+          bullet.bulletVelocity = bulletStats.velocity;
+          bullet.damage = bulletStats.damage;
+          bullet.bulletBounceThreshold = bulletStats.bounceThreshold;
+          bullet.bulletPierceThreshold = bulletStats.bulletPierceThreshold;
+        
+          // Copy effects so future upgrades don't affect existing bullets.
+          bullet.effects = [...bulletStats.effects];
+        
+          this.bullets.push(bullet);
+        }
+      }
 
     
 
@@ -403,26 +420,18 @@ export class PlayerClass extends LJS.EngineObject {
         // mouse position - player position = direction vector
         const dir = this.mousePosLoc.subtract(this.pos).normalize();
 
-        // Calculate the ray path:
-        // - Up to three hit-ending segments.
-        // - Each segment has a maximum length of 2000.
-        // - The first segment starts at the player.
-        // - Store all segments in NextRayDists.
-        CalculatePath(
-            start_pos,
-            dir,
-            Bounces,
-            2000,
-            start_pos,
-            NextRayDists
-        );
+        // Rebuild the aiming guideline.
+        if (dir.lengthSquared() > 0) {
+          this.guideline.update(this.pos, dir, this.stats.guidelineDistance);
+        }
 
-        // Swap the Maps:
-        // The newly calculated path becomes the render path.
-        // The old render Map becomes the temporary Map.
-        [RayDists, NextRayDists] = [NextRayDists, RayDists];
+        // Fire using LittleJS mouse input.
+        if (LJS.mouseWasPressed(0) && this.fireCooldownRemaining <= 0) {
+          this.fireBullet();
+          this.fireCooldownRemaining = this.stats.fireCooldown;
+        }
 
-
+    
         if (mouseWasPressed) {
             this.fireBullet();
             mouseWasPressed = false;
@@ -436,11 +445,8 @@ export class PlayerClass extends LJS.EngineObject {
     render() {
 
         if(IsGameEnded) return;
-
-        if (PlayerHealth < this.previousHealth) {
-            this.color.a = PlayerHealth / 100;
-        }
-        this.previousHealth = PlayerHealth;
+        
+        this.guideline.render();
         
 
         // Draw the player as a green circle.
@@ -458,14 +464,5 @@ export class PlayerClass extends LJS.EngineObject {
             LJS.BLACK
         );
 
-        // Draw every segment of the calculated ray path.
-        RayDists.forEach(element => {
-            LJS.drawLine(
-                element.start,
-                element.end,
-                0.1,
-                LJS.GRAY
-            );
-        });
     }
 }

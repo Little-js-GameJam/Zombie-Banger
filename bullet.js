@@ -1,11 +1,15 @@
 import * as LJS from 'littlejsengine';
 import { Enemies, Objects,EneminesEliminated } from './Objects.js';
-import { rayRecHit,damagePlayer,Bounces } from './player.js'; 
+import { rayRecHit,Bounces } from './player.js'; 
+// import { Sprites } from './Sprites.js';
 
 // CHANGED: set to true to log every bounce in the browser console.
 const DEBUG_BULLETS = true;
 // console.log(Bounces);
 export class BulletClass extends LJS.EngineObject {
+
+    // Number of additional enemy hits allowed.
+    bulletPierceThreshold = 0;
 
     // Direction in which the bullet currently travels.
     direction = LJS.vec2(0, 0);
@@ -20,10 +24,13 @@ export class BulletClass extends LJS.EngineObject {
     // so 400 units/s crossed the whole map in ~4 frames and used up all
     // bounces almost instantly. 30 units/s is about 1 second per crossing.
     bulletVelocity = 30; // Units (tiles) per second
-
+    damage = 20;
+    effects = [];
+    player = null;
     lifeTimeOver = false;
+    ignoredEnemy = null;
 
-    constructor(startPos, targetPos) {
+    constructor(startPos, targetPos,player = null) {
         super(startPos);
 
         // Calculate the direction from player to mouse.
@@ -38,7 +45,34 @@ export class BulletClass extends LJS.EngineObject {
                 'dir', this.direction.x.toFixed(2), this.direction.y.toFixed(2),
                 'colliders:', Objects.length
             );
+
+            // this.tileInfo = Sprites.bullet;
+            this.player = player;
+
+            this.updateSpriteAngle();
     }
+    
+    updateSpriteAngle() {
+        this.angle = this.direction.angle();
+    }
+    
+    isInsideEnemy(point, enemy) {
+      const halfSize = enemy.size.scale(0.5);
+
+      return (
+        Math.abs(point.x - enemy.pos.x) <= halfSize.x &&
+        Math.abs(point.y - enemy.pos.y) <= halfSize.y
+      );
+    }
+
+    triggerEffects(eventName, ...args) {
+      for (const effect of this.effects) {
+        if (typeof effect[eventName] === "function") {
+          effect[eventName](this, ...args);
+        }
+      }
+    }
+
 
     update() {
 
@@ -57,6 +91,10 @@ export class BulletClass extends LJS.EngineObject {
         // Find the closest collision along the movement path.
         let nearestHit = null;
         let nearestDistance = Infinity;
+
+        if (this.ignoredEnemy && !this.isInsideEnemy(this.pos, this.ignoredEnemy)) {
+            this.ignoredEnemy = null;
+        }
 
         for (const enemy of Enemies.values()) {
             
@@ -137,8 +175,6 @@ export class BulletClass extends LJS.EngineObject {
 
         this.bouncesHappened++;
 
-        //Decrease the health of the player on the bounce count
-        damagePlayer(5);
 
         // Move slightly away from the wall to prevent
         // immediately detecting the same collision again.
